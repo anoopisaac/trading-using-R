@@ -2,30 +2,22 @@ library(quantmod)
 setwd('C:/Users/anoop/dream/running/r-stock-trading')
 getwd()
 
-#finding macd
-findMacd<-function(tickData){
-  closeData<-tickData[,4]
-  #print(closeData)
-  tmp <- to.weekly(closeData)
-  print(tmp)
-  #print(tmp)
-  macd  <- MACD( tmp[,4], 12, 26, 9, maType="EMA" )
-  #print(macd)
-  return(macd)
+#finding macd line that goes below zero when plotted in weeks
+findPercMacdGoingBelow<-function(tickerData){
+  closeData<-tickerData[,4]
+  weekData <- to.weekly(closeData)
+  weekMacd  <- MACD( tmp[,4], 12, 26, 9, maType="EMA",percent = F )
+  return(weekMacd)
   #print(macd)
 }
 tickerData=get(sprintf('%s%s','ASIANPAINT','.NS'))
 tickerData<-na.omit(tickerData)
-closeData<-tickerData[,4]
-tmp <- to.weekly(closeData)
-ema.12<-EMA(tmp[,4],12)
-ema.26<-EMA(tmp[,4],26)
-sma.12<-SMA(tmp[,4],12)
-sma.26<-SMA(tmp[,4],26)
-macd  <- MACD( tmp[,4], 12, 26, 9, maType="EMA",percent = F )
 #print(tickerData)
-check<-findMacd(tickerData)
-plot(check)
+weekMacd<-findPercMacdGoingBelow(tickerData)
+
+length(which(!is.na(weekMacd[,'macd'])))
+length(which(is.na(weekMacd[,'macd'])))
+check<-which(is.numeric(weekMacd[,'macd']))
 
 #function to calculate return counts
 profitMonths <- function(tickData) 

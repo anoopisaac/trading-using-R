@@ -22,6 +22,6 @@ profitMonths <- function(tickData)
   greater.than.zero=which(monthly.return.data$monthly.returns>0)
   return(length(greater.than.zero))
 }
-
+population[order(population$age),]
 u<-profitMonths(asian)
 print(u)
