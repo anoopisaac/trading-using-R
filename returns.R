@@ -1,6 +1,9 @@
 library(quantmod)
+library(lubridate)
+
 setwd('C:/Users/anoop/dream/running/r-stock-trading')
 getwd()
+
 
 
 #init ticker symbols
@@ -8,60 +11,85 @@ tickers <- read.csv(file=file.path("nifty", "200"), header=T)
 
 #finding macd line that goes below zero when plotted in weeks
 getMacdDataByTicker<-function(symbolName){
-  #get data from global dataframe using dynamic access
-  tickerData=get(sprintf('%s%s',symbolName,'.NS'))
-  #omit null
-  tickerData<-na.omit(tickerData)
-  
-  closeData<-tickerData[,4]
-  weekData <- to.weekly(closeData)
+  weekData <- to.weekly(getTickerData(symbolName))
   weekMacd  <- MACD( weekData[,4], 12, 26, 9, maType="EMA",percent = F )
   return(weekMacd)
-  #print(macd)
 }
 
-findPercMacdGoingBelow<-function(){
-  
-  #print(tickerData)
-  weekMacd<-getMacdDataByTicker(tickerData)
-  
-  length(which(!is.na(weekMacd[,'macd'])))
-  length(which(is.na(weekMacd[,'macd'])))
-  check<-which(is.numeric(weekMacd[,'macd']))
+getLastYearReturn<-function(symbolName){
+  last_day_prev_year <- floor_date(Sys.Date(), "year") - days(1)
+  first_day_prev_year <- floor_date(last_day_prev_year, "year")
+  print(sprintf('%s dates %s',last_day_prev_year,first_day_prev_year))
+  tickerData<-getTickerData(symbolName)
+  startValue=as.numeric(tickerData[first_day_prev_year,1])
+  endValue=as.numeric(tickerData[last_day_prev_year,1])
+  print(sprintf('%s  %s',endValue,startValue))
+  stockReturn<-(endValue-startValue)/startValue
+  return(stockReturn)
+}
+getLastQuarterReturn<-function(symbolName){
+  quarterly.return.data<-quarterlyReturn(getTickerData(symbolName)[,1])
+  print(quarterly.return.data[-1])
+  #print(sprintf('return:::: %s',quarterly.return.data[,1]))
+  return(tail(quarterly.return.data,1))
 }
 
-macd.data<-getMacdDataByTicker('ASIANPAINT')
+getTickerData<-function(symbolName){
+  tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
+  na.omit(tickerData)
+  return(tickerData[,4])
+}
 
+getMacdStats<-function(symbol){
+  macdData<-getMacdDataByTicker(symbol)
+  macdValidCount=length(which(!is.na(macdData[,'macd'])))
+  macdValueGTZero=length(week.macd.data[week.macd.data$macd>0,'macd'])
+  macdSuccessPerc=macdValueGTZero/macdValidCount
+  print(sprintf("%s %s",macdValueGTZero,macdSuccessPerc))
+  #print(length(which(is.na(macdData[,'macd']))))
+  
+  
+  #print(length(which(is.na(macdData[,'macd']))))
+}
+
+week.macd.data<-getMacdDataByTicker('ASIANPAINT')
+summary(week.macd.data)
+length(week.macd.data[!is.na(week.macd.data$macd),'macd'])
+length(week.macd.data[week.macd.data$macd<0,'macd'])
+findPercMacdGoingBelow(week.macd.data)
+as.numeric(week.macd.data[,'macd'])->week.macd.data[,'macd']
+lapply(week.macd.data,is.numeric)
 
 #function to calculate return counts
-profitMonths <- function(tickData) 
+profitMonths <- function(symbolName) 
 {
-  monthly.return.data<-monthlyReturn(tickData[,4])
+  tickerData<-getTickerData(symbolName)
+  monthly.return.data<-monthlyReturn(tickerData[,1])
   greater.than.zero=which(monthly.return.data$monthly.returns>0)
   return(length(greater.than.zero))
 }
 
-profitQuarterly <- function(tickData) 
+
+profitQuarterly <- function(symbolName) 
 {
-  quarterly.return.data<-quarterlyReturn(tickData[,4])
+  tickerData<-getTickerData(symbolName)
+  quarterly.return.data<-quarterlyReturn(tickerData[,1])
   print(quarterly.return.data)
   greater.than.zero=which(quarterly.return.data$quarterly.returns>0)
   return(length(greater.than.zero))
 }
 
-populateReturnData<-function(tickData){
+populateReturnData<-function(){
   #init quarterly/monthly return data
   returns.data<-data.frame(matrix(ncol = 2, nrow = 0))
-  colnames(returns.data) <- c("symbol", "profits")
+  colnames(returns.data) <- c("symbol", "success-quarters","success-macd-by-week")
   
   #load all returns data
   count=0
   for(symbol in tickers$Symbol){
     #for(symbol in c('ASIANPAINT')){
     count=count+1
-    tickerData=get(sprintf('%s%s',symbol,'.NS'))
-    na.omit(tickerData)
-    u<-profitQuarterly(tickerData)
+    u<-profitQuarterly(symbol)
     returns.data[count, ] <- c(symbol, as.integer(u))
   }
   as.numeric(returns.data[,2])->returns.data[,2]
