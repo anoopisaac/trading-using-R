@@ -12,6 +12,6 @@ age.data <- data.frame(age=c(10,15,15,20,25,30,35),salary=c(50,70,55,60,65,70,75
 age.data %>% filter(age > 10)%>% group_by(age) %>% summarise(n = sum(n))
 age.data %>%  group_by(age.data$age) 
 
-age.data.1 <- data.frame(age4=c(10,15,20,25,30,35),salary=c(50,55,60,65,70,75))
-age.data.1 %>%  group_by(age) %>% filter(any(age > 1))
+age.data.1 <- data.frame(age4=c(10,15,15,20,25,30,35),salary=c(50,4,55,60,65,70,75))
+age.data.1 %>%  group_by(age4) %>% summarise(Frequency = sum(salary))
 
