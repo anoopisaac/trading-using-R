@@ -53,7 +53,17 @@ getMacdDataByTicker<-function(symbolName){
 for(symbol in tickers$Symbol){
   getMacdDataByTicker(symbol)
 }
+library(dplyr) 
 
+asianpaint.macd.data %>% filter(macd>0)
+starwars %>% filter(mass > mean(mass, na.rm = TRUE))
+x <- 1:100
+filter(x, rep(1, 3))
+asianpaint.macd.data<-getMacdDataByTicker('ASIANPAINT')
+filter(week.macd.data,signal=='ewrer')
+(asianpaint.macd.data%>%filter(any(signal>0)))
+length(asianpaint.macd.data$macd[asianpaint.macd.data$macd>0])
+asianpaint.macd.data$macd %>% filter('macd' > 0)
 
 getMacdStats<-function(symbol){
   macdData<-getMacdDataByTicker(symbol)
@@ -127,3 +137,6 @@ return.stats<-populateReturnData()
 for(symbol in tickers$Symbol){
   getSymbols(sprintf('%s%s',symbol,'.NS'),from="2015-01-01")
 }
+
+MUTHOOTFIN.NS['2018-01-01']
+MUTHOOTFIN.NS['2018-12-31']
