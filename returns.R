@@ -23,7 +23,7 @@ getLastYearReturn<-function(symbolName){
   }
   startValue=as.numeric(tickerData[first_day_prev_year,1])
   endValue=as.numeric(tickerData[last_day_prev_year,1])
-  cat(startValue,tickerData[first_day_prev_year,1], endValue,length(endValue))
+  #cat(startValue,tickerData[first_day_prev_year,1], endValue,length(endValue)))
   #print(sprintf('%s  %s',endValue,startValue))
   stockReturn<-(endValue-startValue)/startValue
   return(stockReturn)
@@ -54,8 +54,8 @@ getMacdDataByTicker<-function(symbolName){
   weekData <- to.weekly(getOrgTickerData(symbolName))
   #print(sprintf("%s %s",symbolName,length(weekData)))
   weekMacd  <- MACD( weekData[,4], 12, 26, 9, maType="EMA",percent = F )
-  print(EMA(weekData[,1],12))
-  print(EMA(weekData[,1],26))
+  #print(EMA(weekData[,1],12))
+  #print(EMA(weekData[,1],26))
   return(weekMacd)
 }
 for(symbol in tickers$Symbol){
@@ -70,19 +70,31 @@ filter(x, rep(1, 3))
 
 #this values should small which would denote that success macds are evenly distributed and there is concentration
 getFailureMonthsPercentile<-function(macdData){
+  cat('reached',length(macdData[!is.na(macdData$macd),'macd']))
   success.data<-macdData[macdData$macd>0,'macd']
+  cat('reached.',length(success.data))
+  if(length(success.data)==0){
+    return(0)
+  }
   # this is done so that I can get the count after grouping
   success.data$count=c(1:1)
+  print('reached..')
   groupedByMonth <- apply.monthly(xts(success.data), colSums)
+  print('reached....')
   #way to find percentile given value
   percentile<-ecdf(as.vector(groupedByMonth$count))
+  print('reached.....')
   # as there are 4 to 5 weeks in a month and assuming median of 4.2 , 3.8 should be somthing below median. this value 
   #should be as low as possible which would say there not lot many months which success macds below median value
   return(percentile(3.8))
 }
-
+print(getFailureMonthsPercentile(adanipower.macd.data))
+length(adanipower.macd.data[!is.na(adanipower.macd.data$macd),'macd'])
 asianpaint.macd.data<-getMacdDataByTicker('ASIANPAINT')
-print(getFailureMonthsPercentile(asianpaint.macd.data))
+adanipower.macd.data<-getMacdDataByTicker('ADANIPOWER')
+length(adanipower.macd.data[!is.na(adanipower.macd.data$macd),'macd'])
+length(adanipower.macd.data[adanipower.macd.data$macd>0,'macd'])
+plot(adanipower.macd.data)
 
 length(success.data)
 length(asianpaint.macd.data$macd)
@@ -123,7 +135,6 @@ profitMonths <- function(symbolName)
   return(length(greater.than.zero))
 }
 
-
 profitQuarterly <- function(symbolName) 
 {
   tickerData<-getTickerData(symbolName)
@@ -138,17 +149,18 @@ populateReturnData<-function(){
   return.stats <- data.frame(Symbol=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
   count=0
   for(symbol in tickers$Symbol){
+    print(symbol)
     #for(symbol in c('ASIANPAINT')){
     count=count+1
     successQurters<-profitQuarterly(symbol)
     
-    #macdData<-getMacdDataByTicker(symbol)
+    macdData<-getMacdDataByTicker(symbol)
     #list of macd where the value is above zero, which i assume, would mean its 12 weeks average is above 26 week average
     successMacdsPercByWeek<-getMacdStats(symbol)
     lastYearReturn<-getLastYearReturn(symbol)
-    #failureMonthsPercentile<-getFailureMonthsPercentile(macdData)
-    cat(symbol,is.na(lastYearReturn))
-    return.stats[count, ] <- c(symbol, successQurters,successMacdsPercByWeek,lastYearReturn,1)
+    failureMonthsPercentile<-getFailureMonthsPercentile(macdData)
+    #cat(symbol,is.na(lastYearReturn))
+    return.stats[count, ] <- c(symbol, successQurters,successMacdsPercByWeek,lastYearReturn,failureMonthsPercentile)
     #return.stats[count, ] <- c(1,1,2)
     #print(count)
     #print(c(symbol, successQurters,successMacdsPercByWeek))
@@ -162,9 +174,9 @@ populateReturnData<-function(){
 return.stats<-populateReturnData()
 
 getSumOfAllEarnings<-function(){
-  attach(return.stats)
+  #attach(return.stats)
   sumOfAllEarnings<-sum(head(return.stats[order(-SuccessMacd),],10)[,4])
-  return(sumOfAllEarnings)
+  #return(sumOfAllEarnings)
 }
 
 

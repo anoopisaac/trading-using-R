@@ -55,10 +55,23 @@ monthlyTS <- apply.monthly(xts(xts2), mean)
 monthlyTS <- apply.monthly(xts(xts2), colSums)
 quantile(monthlyTS$dummy,probs = .8)
 mean(monthlyTS$dummy)
-mean()
+monthlyTS$dummy
+percent_rank(c(1,2,3))
+percentile<-ecdf(monthlyTS$dummy)
+percentile<-ecdf(as.vector(monthlyTS$dummy))
+
+percentile(30)
 #https://github.com/joshuaulrich/xts/issues/124
 monthlyTS <- apply.monthly(xts(xts2), function(x) mean(x))
 
 ## simple creation and plotting
 x.Date <- as.Date("2003-02-01") + c(1, 3, 7, 9, 14) - 1
 x.data <- xts(rnorm(5), x.Date)
+
+x <- c(5, 1, 3, 2, 2, NA)
+row_number(x)
+
+percentile.test<-c(rep(30,10),rep(31,10),1,2)
+percentile.test
+percentile<-ecdf(percentile.test)
+percentile(30)
