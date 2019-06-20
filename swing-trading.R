@@ -10,6 +10,11 @@ isRising<-function(prevRowsToCheck,data,rowIndex,colName){
   return(is.unsorted(list)==FALSE & tail(list,1)!=head(list,1))
 }
 
+getClosingPrice<-function(symbol,date){
+  return(as.numeric(tickerData[date,4]))
+}
+
+
 rowIndex=which(index(dailyMacdData) == "2014-02-07")
 print(isFalling(2,dailyMacdData,rowIndex,'macd'))
 print(isRising(2,dailyMacdData,rowIndex,'macd'))
@@ -23,25 +28,55 @@ as.vector(list)
 check=c(4,4,4,4)
 is.unsorted(list)
 is.unsorted(rev(check))
+
 #
-tickerData<-getOrgTickerData('ASIANPAINT')
+tickerData<-getOrgTickerData(symbol)
 #tickerData<-na.omit(tickerData)
 weekMacdData<-getMacdDataByTicker(tickerData)
 dailyMacdData  <- MACD( tickerData[,4], 12, 26, 9, maType="EMA",percent = F )
 plot(dailyMacdData)
-purchase.positions <- data.frame(Symbol=numeric(), type=character(), date=date(),profit=numeric()) 
 
-count=0
+symbol='ASIANPAINT'
+purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),stringsAsFactors = FALSE) 
+isPurchaseOn=FALSE
 for (row in 1:nrow(dailyMacdData)) {
   #check<-
-  macd <- dailyMacdData[row, "macd"]
-  signal  <- dailyMacdData[row, "signal"]
+  macd <- as.numeric(dailyMacdData[row, "macd"])
+  signal  <- as.numeric(dailyMacdData[row, "signal"])
   date<-index(dailyMacdData[row])
-  print(as.Date(date))
-  print(dailyMacdData[date])
-  #cat(macd,signal,index(dailyMacdData[row]),'\n')
-  #return.stats[count, ] <- c(symbol, quarters$total,quarters$success,successMacdsPercByWeek,lastYearReturn,failureMonthsPercentile)
+  isMacdLess=macd<signal
+  if(isPurchaseOn  ){
+    isMacdGreater=macd>signal
+    sellFlag=!is.na(isMacdGreater) && isMacdGreater && isFalling(2,dailyMacdData,row,'macd')
+    sellFlag=sellFlag||(!is.na(isMacdLess) && isMacdLess)
+    if(sellFlag){
+      isPurchaseOn=FALSE
+      buyingRow=purchase.positions[nrow(purchase.positions),]
+      buyDate=(as.Date(as.numeric(purchase.positions[1,'Date'])))
+      buyingPrice=getClosingPrice(symbol,buyDate)
+      #cat('buyingPrice',buyingPrice,'\n')
+      sellingPrice=getClosingPrice(symbol,date)
+      purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'S',date,(sellingPrice-buyingPrice))
+    }
+    
+  }
+  if(!is.na(isMacdLess) && isMacdLess && isRising(2,dailyMacdData,row,'macd')){
+    #print(isRising(2,dailyMacdData,row,'macd'))
+    cat("is less",macd,signal,as.character(date),"\n")
+    isPurchaseOn=TRUE
+    purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0)
+    
+  }
   
 }
+purchase.positions$DateString=as.Date(as.numeric(purchase.positions[,'Date']))
 
+buyDate=(as.Date(as.numeric(purchase.positions[1,'Date'])))
+
+getClosingPrice('w',buyDate)
+getClosingPrice('w','2015-01-01')
+
+as.numeric (dailyMacdData[100, "signal"])
 dailyMacdData<-dailyMacdData[index(dailyMacdData)>='2015-01-01']
+
+purchase.positions[nrow(purchase.positions)+1, ]<-c(symbol, 'Buy',date,0)
