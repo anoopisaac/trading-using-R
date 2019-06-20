@@ -16,7 +16,7 @@ getClosingPrice<-function(symbol,date){
   return(as.numeric(tickerData[date,4]))
 }
 
-getProfitPerc<-function(symbol){
+getProfitPerc<-function(symbol,startDate){
   
   tickerData<-getOrgTickerData(symbol)
   dailyMacdData  <- MACD( tickerData[,4], 12, 26, 9, maType="EMA",percent = F )
@@ -34,7 +34,7 @@ getProfitPerc<-function(symbol){
     isMacdGreater=macd>signal
     
     #hasMacdCrossed=hasCrossed(dailyMacdData,row)
-    cat('crossed',hasMacdCrossed,as.character(date),"\n")
+    #cat('crossed',hasMacdCrossed,as.character(date),"\n")
     # will only sell if it crosses the signal line
     if(isPurchaseOn ){
       #this needs to be done only once in purchase cycle
@@ -45,9 +45,9 @@ getProfitPerc<-function(symbol){
       buyingRow=purchase.positions[nrow(purchase.positions),]
       buyDate=(as.Date(as.numeric(buyingRow$Date)))
       sellFlag=isFalling(3,dailyMacdData,row,'histogram')
-      cat('inside purchase',buyDate,sellFlag,hasMacdCrossed,"\n")
+      #cat('inside purchase',buyDate,sellFlag,hasMacdCrossed,"\n")
       if(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess){
-        cat('inside double cross*********\n')
+        #cat('inside double cross*********\n')
       }
       sellFlag=sellFlag||(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess)
       if(sellFlag){
@@ -65,7 +65,7 @@ getProfitPerc<-function(symbol){
     }
     if(!isPurchaseOn && !is.na(isMacdLess) && isMacdLess && isRising(2,dailyMacdData,row,'histogram')){
       #print(isRising(2,dailyMacdData,row,'macd'))
-      cat("is less",macd,signal,as.character(date),"\n")
+      #cat("is less",macd,signal,as.character(date),"\n")
       isPurchaseOn=TRUE
       purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0,0)
       hasMacdCrossed=FALSE
@@ -76,8 +76,22 @@ getProfitPerc<-function(symbol){
   
   purchase.positions$DateString=as.Date(as.numeric(purchase.positions[,'Date']))
   purchase.positions$ClosingPrice=getClosingPrice('w',as.Date(as.numeric(purchase.positions[,'Date'])))
+  purchase.positions<-purchase.positions[as.Date(as.numeric(purchase.positions$Date))>as.Date(startDate),]
   return(sum(as.numeric(purchase.positions[,'ProfitPerc'])))
   
 }
 
-getProfitPerc('ASIANPAINT')
+swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),stringsAsFactors = FALSE) 
+
+#get all ticker data using symbols
+for(symbol in tickers$Symbol){
+  profitPerc=getProfitPerc(symbol,"2018-01-01")
+  swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, profitPerc)
+  cat('symobl',symbol,'perc',profitPerc)
+}
+
+getProfitPerc('ASIANPAINT',"2018-01-01")
+
+dailyMacdData[index(dailyMacdData)>as.Date("2018-01-01"),]
+
+purchase.positions[as.Date(as.numeric(purchase.positions$Date))>as.Date("2018-01-01"),]

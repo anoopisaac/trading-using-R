@@ -128,8 +128,9 @@ dailyMacdData$histogram=as.numeric(dailyMacdData[,'macd'])-as.numeric(dailyMacdD
 purchase.positions[nrow(purchase.positions)+1, ]<-c(symbol, 'Buy',date,0)
 
 
-startIndex=which(index(dailyMacdData) == "2014-03-04")
-endIndex=which(index(dailyMacdData) == "2014-03-05")
+startIndex=which(index(dailyMacdData) == "2018-01-01")
+endIndex=which(index(dailyMacdData) == "2019-05-30")
 
-dailyMacdData[startIndex:endIndex,]
+check.data<-dailyMacdData[startIndex:endIndex,]
+dailyMacdData[as.Date("2018-01-01"):as.Date("2019-05-31"),]
 
