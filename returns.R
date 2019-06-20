@@ -12,17 +12,15 @@ colnames(return.stats) <- c("symbol", "success-quarters","success-macd-by-week")
 #init ticker symbols
 tickers <- read.csv(file=file.path("nifty", "200"), header=T)
 
-getLastYearReturn<-function(symbolName){
+getLastYearReturn<-function(closeTickerData){
   last_day_prev_year <- floor_date(Sys.Date(), "year") - days(1)
   first_day_prev_year <- floor_date(last_day_prev_year, "year")
-  #print(sprintf('%s dates %s',last_day_prev_year,first_day_prev_year))
-  tickerData<-getTickerData(symbolName)
   #if any of the start or end tick data is not presetn return -1
-  if(length(tickerData[first_day_prev_year,1])==0 | length(tickerData[last_day_prev_year,1])==0){
+  if(length(closeTickerData[first_day_prev_year,1])==0 | length(closeTickerData[last_day_prev_year,1])==0){
     return(-1111)
   }
-  startValue=as.numeric(tickerData[first_day_prev_year,1])
-  endValue=as.numeric(tickerData[last_day_prev_year,1])
+  startValue=as.numeric(closeTickerData[first_day_prev_year,1])
+  endValue=as.numeric(closeTickerData[last_day_prev_year,1])
   #cat(startValue,tickerData[first_day_prev_year,1], endValue,length(endValue)))
   #print(sprintf('%s  %s',endValue,startValue))
   stockReturn<-(endValue-startValue)/startValue
@@ -43,15 +41,16 @@ getTickerData<-function(symbolName){
   return(tickerData[,4])
 }
 
-getOrgTickerData<-function(symbolName){
+getOrgTickerData<-function(symbolName,date){
   tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
+  tickerData<-tickerData[index(tickerData)>='2015-01-01']
   na.omit(tickerData)
   return(tickerData)
 }
 
 #finding macd line that goes below zero when plotted in weeks
-getMacdDataByTicker<-function(symbolName){
-  weekData <- to.weekly(getOrgTickerData(symbolName))
+getMacdDataByTicker<-function(orgTickerData){
+  weekData <- to.weekly(orgTickerData)
   #print(sprintf("%s %s",symbolName,length(weekData)))
   weekMacd  <- MACD( weekData[,4], 12, 26, 9, maType="EMA",percent = F )
   #print(EMA(weekData[,1],12))
@@ -109,8 +108,8 @@ filter(week.macd.data,signal=='ewrer')
 length(asianpaint.macd.data$macd[asianpaint.macd.data$macd>0])
 asianpaint.macd.data$macd %>% filter('macd' > 0)
 
-getMacdStats<-function(symbol){
-  macdData<-getMacdDataByTicker(symbol)
+getMacdStats<-function(orgTickerData){
+  macdData<-getMacdDataByTicker(orgTickerData)
   macdValidCount=length(which(!is.na(macdData[,'macd'])))
   macdValueGTZero=length(macdData[macdData$macd>0,'macd'])
   macdSuccessPerc=macdValueGTZero/macdValidCount
@@ -135,32 +134,36 @@ profitMonths <- function(symbolName)
   return(length(greater.than.zero))
 }
 
-profitQuarterly <- function(symbolName) 
+profitQuarterly <- function(closeTickerData) 
 {
-  tickerData<-getTickerData(symbolName)
-  quarterly.return.data<-quarterlyReturn(tickerData[,1])
+  #tickerData<-getTickerData(symbolName)
+  quarterly.return.data<-quarterlyReturn(closeTickerData[,1])
   #print(quarterly.return.data)
   greater.than.zero=which(quarterly.return.data$quarterly.returns>0)
-  return(length(greater.than.zero))
+  return (list(success=length(greater.than.zero),total=length(quarterly.return.data)))
 }
+
+
 
 populateReturnData<-function(){
   
-  return.stats <- data.frame(Symbol=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
+  return.stats <- data.frame(Symbol=numeric(), total=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
   count=0
   for(symbol in tickers$Symbol){
     print(symbol)
     #for(symbol in c('ASIANPAINT')){
     count=count+1
-    successQurters<-profitQuarterly(symbol)
+    orgTickerData<-getOrgTickerData(symbol)
+    quarters<-profitQuarterly(orgTickerData[,4])
     
-    macdData<-getMacdDataByTicker(symbol)
+    macdData<-getMacdDataByTicker(orgTickerData)
     #list of macd where the value is above zero, which i assume, would mean its 12 weeks average is above 26 week average
-    successMacdsPercByWeek<-getMacdStats(symbol)
-    lastYearReturn<-getLastYearReturn(symbol)
+    successMacdsPercByWeek<-getMacdStats(orgTickerData)
+    lastYearReturn<-getLastYearReturn(orgTickerData[,4])
     failureMonthsPercentile<-getFailureMonthsPercentile(macdData)
     #cat(symbol,is.na(lastYearReturn))
-    return.stats[count, ] <- c(symbol, successQurters,successMacdsPercByWeek,lastYearReturn,failureMonthsPercentile)
+    return.stats[count, ] <- c(symbol, quarters$total,quarters$success,successMacdsPercByWeek,lastYearReturn,failureMonthsPercentile)
+    #return.stats.from.2015=return.stats[index(return.stats)>'2015-01-01']
     #return.stats[count, ] <- c(1,1,2)
     #print(count)
     #print(c(symbol, successQurters,successMacdsPercByWeek))

@@ -75,3 +75,5 @@ percentile.test<-c(rep(30,10),rep(31,10),1,2)
 percentile.test
 percentile<-ecdf(percentile.test)
 percentile(30)
+adanipower.macd.data[index(adanipower.macd.data)>'2015-01-01']
+adanipower.macd.data
