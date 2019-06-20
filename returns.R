@@ -67,7 +67,27 @@ asianpaint.macd.data %>% filter(macd>0)
 starwars %>% filter(mass > mean(mass, na.rm = TRUE))
 x <- 1:100
 filter(x, rep(1, 3))
+
+#this values should small which would denote that success macds are evenly distributed and there is concentration
+getFailureMonthsPercentile<-function(macdData){
+  success.data<-macdData[macdData$macd>0,'macd']
+  # this is done so that I can get the count after grouping
+  success.data$count=c(1:1)
+  groupedByMonth <- apply.monthly(xts(success.data), colSums)
+  #way to find percentile given value
+  percentile<-ecdf(as.vector(groupedByMonth$count))
+  # as there are 4 to 5 weeks in a month and assuming median of 4.2 , 3.8 should be somthing below median. this value 
+  #should be as low as possible which would say there not lot many months which success macds below median value
+  return(percentile(3.8))
+}
+
 asianpaint.macd.data<-getMacdDataByTicker('ASIANPAINT')
+print(getFailureMonthsPercentile(asianpaint.macd.data))
+
+length(success.data)
+length(asianpaint.macd.data$macd)
+lmonthly.success
+plot(asianpaint.macd.data$macd)
 plot(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`)
 asianpaint.week.data <- to.weekly(getOrgTickerData('ASIANPAINT'))
 asia.ema12<-(EMA(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`,12))
@@ -115,17 +135,20 @@ profitQuarterly <- function(symbolName)
 
 populateReturnData<-function(){
   
-  return.stats <- data.frame(Symbol=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(),LastYearReturn=numeric(), stringsAsFactors=FALSE) 
+  return.stats <- data.frame(Symbol=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
   count=0
   for(symbol in tickers$Symbol){
     #for(symbol in c('ASIANPAINT')){
     count=count+1
     successQurters<-profitQuarterly(symbol)
+    
+    #macdData<-getMacdDataByTicker(symbol)
     #list of macd where the value is above zero, which i assume, would mean its 12 weeks average is above 26 week average
     successMacdsPercByWeek<-getMacdStats(symbol)
     lastYearReturn<-getLastYearReturn(symbol)
+    #failureMonthsPercentile<-getFailureMonthsPercentile(macdData)
     cat(symbol,is.na(lastYearReturn))
-    return.stats[count, ] <- c(symbol, successQurters,successMacdsPercByWeek,lastYearReturn)
+    return.stats[count, ] <- c(symbol, successQurters,successMacdsPercByWeek,lastYearReturn,1)
     #return.stats[count, ] <- c(1,1,2)
     #print(count)
     #print(c(symbol, successQurters,successMacdsPercByWeek))
@@ -133,8 +156,10 @@ populateReturnData<-function(){
   as.numeric(return.stats[,2])->return.stats[,2]
   as.numeric(return.stats[,3])->return.stats[,3]
   as.numeric(return.stats[,4])->return.stats[,4]
+  as.numeric(return.stats[,5])->return.stats[,5]
   return(return.stats)
 }
+return.stats<-populateReturnData()
 
 getSumOfAllEarnings<-function(){
   attach(return.stats)
@@ -142,11 +167,10 @@ getSumOfAllEarnings<-function(){
   return(sumOfAllEarnings)
 }
 
-return.stats<-populateReturnData()
 
 #get all ticker data using symbols
 for(symbol in tickers$Symbol){
-  getSymbols(sprintf('%s%s',symbol,'.NS'),from="2015-01-01")
+  getSymbols(sprintf('%s%s',symbol,'.NS'),from="2014-01-01")
 }
 
 getSymbols(sprintf('%s%s','ASIANPAINT','.NS'),from="2014-01-01")
