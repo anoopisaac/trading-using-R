@@ -37,13 +37,14 @@ getLastQuarterReturn<-function(symbolName){
 
 getTickerData<-function(symbolName){
   tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
-  na.omit(tickerData)
+  tickerData<-na.omit(tickerData)
   return(tickerData[,4])
 }
 
 getOrgTickerData<-function(symbolName,date){
   tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
-  tickerData<-tickerData[index(tickerData)>='2015-01-01']
+  tickerData<-na.omit(tickerData)
+  #tickerData<-tickerData[index(tickerData)>='2015-01-01']
   na.omit(tickerData)
   return(tickerData)
 }
@@ -108,8 +109,8 @@ filter(week.macd.data,signal=='ewrer')
 length(asianpaint.macd.data$macd[asianpaint.macd.data$macd>0])
 asianpaint.macd.data$macd %>% filter('macd' > 0)
 
-getMacdStats<-function(orgTickerData){
-  macdData<-getMacdDataByTicker(orgTickerData)
+getMacdStats<-function(macdData){
+  #macdData<-getMacdDataByTicker(orgTickerData)
   macdValidCount=length(which(!is.na(macdData[,'macd'])))
   macdValueGTZero=length(macdData[macdData$macd>0,'macd'])
   macdSuccessPerc=macdValueGTZero/macdValidCount
@@ -157,8 +158,10 @@ populateReturnData<-function(){
     quarters<-profitQuarterly(orgTickerData[,4])
     
     macdData<-getMacdDataByTicker(orgTickerData)
+    #this is done this way because EMA depends on previous EMAs, so it needs to have data since 2014 for 2015 onwards data to work
+    macdData<-macdData[index(macdData)>='2015-01-01']
     #list of macd where the value is above zero, which i assume, would mean its 12 weeks average is above 26 week average
-    successMacdsPercByWeek<-getMacdStats(orgTickerData)
+    successMacdsPercByWeek<-getMacdStats(macdData)
     lastYearReturn<-getLastYearReturn(orgTickerData[,4])
     failureMonthsPercentile<-getFailureMonthsPercentile(macdData)
     #cat(symbol,is.na(lastYearReturn))
@@ -187,6 +190,17 @@ getSumOfAllEarnings<-function(){
 for(symbol in tickers$Symbol){
   getSymbols(sprintf('%s%s',symbol,'.NS'),from="2014-01-01")
 }
+
+
+orgTickerData<-getOrgTickerData('ASIANPAINT')
+quarters<-profitQuarterly(orgTickerData[,4])
+
+macdData<-getMacdDataByTicker(orgTickerData)
+plot(macdData)
+#this is done this way because EMA depends on previous EMAs, so it needs to have data since 2014 for 2015 onwards data to work
+macdData<-macdData[index(macdData)>='2015-01-01']
+plot(macdData)
+
 
 getSymbols(sprintf('%s%s','ASIANPAINT','.NS'),from="2014-01-01")
 
