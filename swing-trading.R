@@ -60,10 +60,11 @@ plot(dailyMacdData)
 startIndex=which(index(dailyMacdData) == "2014-02-18")
 endIndex=which(index(dailyMacdData) == "2014-05-30")
 symbol='ASIANPAINT'
-purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),stringsAsFactors = FALSE) 
+purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),ProfitPerc=numeric(),stringsAsFactors = FALSE) 
 isPurchaseOn=FALSE
 hasMacdCrossed=FALSE
-for (row in startIndex:endIndex) {
+#for (row in startIndex:endIndex) {
+for (row in 1:nrow(dailyMacdData)) {
   #check<-
   macd <- as.numeric(dailyMacdData[row, "macd"])
   signal  <- as.numeric(dailyMacdData[row, "signal"])
@@ -71,14 +72,22 @@ for (row in startIndex:endIndex) {
   isMacdLess=macd<signal
   isMacdGreater=macd>signal
   
-  hasMacdCrossed=hasCrossed(dailyMacdData,row)
+  #hasMacdCrossed=hasCrossed(dailyMacdData,row)
   cat('crossed',hasMacdCrossed,as.character(date),"\n")
   # will only sell if it crosses the signal line
   if(isPurchaseOn ){
+    #this needs to be done only once in purchase cycle
+    if(hasMacdCrossed==FALSE){
+      hasMacdCrossed=!is.na(isMacdGreater)&&isMacdGreater
+    }
+    
     buyingRow=purchase.positions[nrow(purchase.positions),]
     buyDate=(as.Date(as.numeric(buyingRow$Date)))
     sellFlag=isFalling(3,dailyMacdData,row,'histogram')
-    cat('inside purchase',buyDate,sellFlag,"\n")
+    cat('inside purchase',buyDate,sellFlag,hasMacdCrossed,"\n")
+    if(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess){
+      cat('inside double cross*********\n')
+    }
     sellFlag=sellFlag||(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess)
     if(sellFlag){
       isPurchaseOn=FALSE
@@ -87,7 +96,9 @@ for (row in startIndex:endIndex) {
       buyingPrice=getClosingPrice(symbol,buyDate)
       #cat('buyingPrice',buyingPrice,'\n')
       sellingPrice=getClosingPrice(symbol,date)
-      purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'S',date,(sellingPrice-buyingPrice))
+      profit=(sellingPrice-buyingPrice)
+      profitPerc=profit/buyingPrice
+      purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'S',date,(sellingPrice-buyingPrice),profitPerc)
     }
     
   }
@@ -95,7 +106,8 @@ for (row in startIndex:endIndex) {
     #print(isRising(2,dailyMacdData,row,'macd'))
     cat("is less",macd,signal,as.character(date),"\n")
     isPurchaseOn=TRUE
-    purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0)
+    purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0,0)
+    hasMacdCrossed=FALSE
     
   }
   
@@ -103,7 +115,7 @@ for (row in startIndex:endIndex) {
 
 purchase.positions$DateString=as.Date(as.numeric(purchase.positions[,'Date']))
 purchase.positions$ClosingPrice=getClosingPrice('w',as.Date(as.numeric(purchase.positions[,'Date'])))
-sum(as.numeric(purchase.positions[,'Profit']))
+sum(as.numeric(purchase.positions[,'ProfitPerc']))
 
 buyDate=(as.Date(as.numeric(purchase.positions[1,'Date'])))
 
