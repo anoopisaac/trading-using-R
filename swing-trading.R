@@ -10,6 +10,25 @@ isRising<-function(prevRowsToCheck,data,rowIndex,colName){
   return(is.unsorted(list)==FALSE & tail(list,1)!=head(list,1))
 }
 
+hasCrossed<-function(currRow,macdData){
+  prevMacd <- as.numeric(macdData[currRow-1, "macd"])
+  prevSignal  <- as.numeric(macdData[currRow-1, "signal"])
+  
+  isPrevLess=prevMacd<prevSignal
+  cat(prevMacd,prevSignal,currRow,isPrevLess,"\n")
+  
+  currMacd <- as.numeric(macdData[currRow, "macd"])
+  currSignal  <- as.numeric(macdData[currRow, "signal"])
+  isCurrGreater=currMacd>currSignal
+  cat(currMacd,currSignal,currRow,isCurrGreater,"\n")
+  if(!is.na(isPrevLess) && isPrevLess && !is.na(isCurrGreater) && isCurrGreater){
+    return(TRUE)
+  }
+  return (FALSE)
+}
+rowIndex=which(index(dailyMacdData) == "2014-05-14")
+hasCrossed(rowIndex,dailyMacdData)
+
 getClosingPrice<-function(symbol,date){
   return(as.numeric(tickerData[date,4]))
 }
@@ -39,20 +58,24 @@ plot(dailyMacdData)
 symbol='ASIANPAINT'
 purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),stringsAsFactors = FALSE) 
 isPurchaseOn=FALSE
+hasCrossed=FALSE
 for (row in 1:nrow(dailyMacdData)) {
   #check<-
   macd <- as.numeric(dailyMacdData[row, "macd"])
   signal  <- as.numeric(dailyMacdData[row, "signal"])
   date<-index(dailyMacdData[row])
   isMacdLess=macd<signal
-  if(isPurchaseOn  ){
-    isMacdGreater=macd>signal
-    sellFlag=!is.na(isMacdGreater) && isMacdGreater && isFalling(2,dailyMacdData,row,'macd')
-    sellFlag=sellFlag||(!is.na(isMacdLess) && isMacdLess)
+  isMacdGreater=macd>signal
+  
+  hasCrossed=hasCrossed(dailyMacdData,row)
+  # will only sell if it crosses the signal line
+  if(isPurchaseOn ){
+    sellFlag=isFalling(3,dailyMacdData,row,'macd')
+    sellFlag=sellFlag||(hasCrossed && !is.na(isMacdLess) && isMacdLess)
     if(sellFlag){
       isPurchaseOn=FALSE
       buyingRow=purchase.positions[nrow(purchase.positions),]
-      buyDate=(as.Date(as.numeric(purchase.positions[1,'Date'])))
+      buyDate=(as.Date(as.numeric(buyingRow$Date)))
       buyingPrice=getClosingPrice(symbol,buyDate)
       #cat('buyingPrice',buyingPrice,'\n')
       sellingPrice=getClosingPrice(symbol,date)
@@ -60,7 +83,8 @@ for (row in 1:nrow(dailyMacdData)) {
     }
     
   }
-  if(!is.na(isMacdLess) && isMacdLess && isRising(2,dailyMacdData,row,'macd')){
+  if(!isPurchaseOn && !is.na(isMacdLess) && isMacdLess && isRising(2,dailyMacdData,row,'macd')){
+    hasCrossed=FALSE
     #print(isRising(2,dailyMacdData,row,'macd'))
     cat("is less",macd,signal,as.character(date),"\n")
     isPurchaseOn=TRUE
@@ -69,7 +93,10 @@ for (row in 1:nrow(dailyMacdData)) {
   }
   
 }
+
 purchase.positions$DateString=as.Date(as.numeric(purchase.positions[,'Date']))
+purchase.positions$ClosingPrice=getClosingPrice('w',as.Date(as.numeric(purchase.positions[,'Date'])))
+sum(as.numeric(purchase.positions[,'Profit']))
 
 buyDate=(as.Date(as.numeric(purchase.positions[1,'Date'])))
 
