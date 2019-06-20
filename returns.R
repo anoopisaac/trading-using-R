@@ -43,11 +43,19 @@ getTickerData<-function(symbolName){
   return(tickerData[,4])
 }
 
+getOrgTickerData<-function(symbolName){
+  tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
+  na.omit(tickerData)
+  return(tickerData)
+}
+
 #finding macd line that goes below zero when plotted in weeks
 getMacdDataByTicker<-function(symbolName){
-  weekData <- to.weekly(getTickerData(symbolName))
+  weekData <- to.weekly(getOrgTickerData(symbolName))
   #print(sprintf("%s %s",symbolName,length(weekData)))
   weekMacd  <- MACD( weekData[,4], 12, 26, 9, maType="EMA",percent = F )
+  print(EMA(weekData[,1],12))
+  print(EMA(weekData[,1],26))
   return(weekMacd)
 }
 for(symbol in tickers$Symbol){
@@ -60,6 +68,10 @@ starwars %>% filter(mass > mean(mass, na.rm = TRUE))
 x <- 1:100
 filter(x, rep(1, 3))
 asianpaint.macd.data<-getMacdDataByTicker('ASIANPAINT')
+plot(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`)
+asianpaint.week.data <- to.weekly(getOrgTickerData('ASIANPAINT'))
+asia.ema12<-(EMA(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`,12))
+asia.ema26<-(EMA(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`,26))
 filter(week.macd.data,signal=='ewrer')
 (asianpaint.macd.data%>%filter(any(signal>0)))
 length(asianpaint.macd.data$macd[asianpaint.macd.data$macd>0])
@@ -74,8 +86,7 @@ getMacdStats<-function(symbol){
   return(macdSuccessPerc)
 }
 
-week.macd.data.asian<-getMacdDataByTicker('ASIANPAINT')
-week.macd.data.abb<-getMacdDataByTicker('ABB')
+
 summary(week.macd.data)
 length(week.macd.data[!is.na(week.macd.data$macd),'macd'])
 length(week.macd.data[week.macd.data$macd<0,'macd'])
@@ -137,6 +148,8 @@ return.stats<-populateReturnData()
 for(symbol in tickers$Symbol){
   getSymbols(sprintf('%s%s',symbol,'.NS'),from="2015-01-01")
 }
+
+getSymbols(sprintf('%s%s','ASIANPAINT','.NS'),from="2014-01-01")
 
 MUTHOOTFIN.NS['2018-01-01']
 MUTHOOTFIN.NS['2018-12-31']

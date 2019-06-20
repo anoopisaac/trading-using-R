@@ -15,3 +15,31 @@ age.data %>%  group_by(age.data$age)
 age.data.1 <- data.frame(age4=c(10,15,15,20,25,30,35),salary=c(50,4,55,60,65,70,75))
 age.data.1 %>%  group_by(age4) %>% summarise(Frequency = sum(salary))
 
+check<-tail(asianpaint.macd.data$macd )
+check %>%  group_by(macd)
+class(age.data.1)
+class(check)
+as.data.table(asianpaint.macd.data)
+check<-data.frame(date=index(asianpaint.macd.data), coredata(asianpaint.macd.data))
+class(check)
+check<-check %>%  group_by(date)
+library(xts)
+ts.month <- apply.monthly(as.xts(asianpaint.macd.data$macd),FUN=count)
+asianpaint.macd.data$success=asianpaint.macd.data$macd>0
+
+EMA(age.data$age,3)
+age.data[,1]
+
+
+chai<-data.frame(age=c(1:100))
+chai$ema12=EMA(chai[,1],12)
+chai$ema26=EMA(chai[,1],26)
+
+
+
+chai200<-data.frame(age=c(1:200))
+chai200$ema12=EMA(chai200[,1],12)
+chai200$ema26=EMA(chai200[,1],26)
+chai200$sma26=SMA(chai200[,1],26)
+
+chai200[1:30,]=c(1)
