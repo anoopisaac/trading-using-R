@@ -41,5 +41,21 @@ chai200<-data.frame(age=c(1:200))
 chai200$ema12=EMA(chai200[,1],12)
 chai200$ema26=EMA(chai200[,1],26)
 chai200$sma26=SMA(chai200[,1],26)
+chai200$dummy=c(1:200)
 
 chai200[1:30,]=c(1)
+
+#creating xts using order by , good one
+time.data<-ts(1:40, start=c(1922,1), frequency=12)
+xts1 <- xts(x=1:10, order.by=Sys.Date()-1:10)
+xts2 <- xts(x=1:100,order.by = Sys.Date()-100:1)
+colnames(xts2)<-c('test')
+xts2$dummy<-c(1:1)
+monthlyTS <- apply.monthly(xts(xts2), mean)
+monthlyTS <- apply.monthly(xts(xts2), colSums)
+#https://github.com/joshuaulrich/xts/issues/124
+monthlyTS <- apply.monthly(xts(xts2), function(x) mean(x))
+
+## simple creation and plotting
+x.Date <- as.Date("2003-02-01") + c(1, 3, 7, 9, 14) - 1
+x.data <- xts(rnorm(5), x.Date)
