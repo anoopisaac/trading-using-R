@@ -1,6 +1,6 @@
 source("returns.R")
 isFalling<-function(prevRowsToCheck,data,rowIndex,colName){
-  if(rowIndex-prevRowsToCheck<0){
+  if(rowIndex-prevRowsToCheck<=0){
     return(FALSE)
   }
   list=as.vector(data[c(rowIndex:(rowIndex-prevRowsToCheck)),colName])
@@ -9,7 +9,7 @@ isFalling<-function(prevRowsToCheck,data,rowIndex,colName){
   return(if(is.na(status)) FALSE else status)
 }
 isRising<-function(prevRowsToCheck,data,rowIndex,colName){
-  if(rowIndex-prevRowsToCheck<0){
+  if(rowIndex-prevRowsToCheck<=0){
     return(FALSE)
   }
   list=as.vector(data[c(rowIndex:(rowIndex-prevRowsToCheck)),colName])
@@ -39,7 +39,7 @@ getProfitPerc<-function(symbol,macdData){
     isMacdGreater=macd>signal
     
     #hasMacdCrossed=hasCrossed(dailyMacdData,row)
-    #cat('crossed',hasMacdCrossed,as.character(date),"\n")
+    #cat('ispurchaseon...',isPurchaseOn,'crossed',hasMacdCrossed,as.character(date),"\n")
     # will only sell if it crosses the signal line
     if(isPurchaseOn ){
       #this needs to be done only once in purchase cycle
@@ -54,13 +54,13 @@ getProfitPerc<-function(symbol,macdData){
       if(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess){
         #cat('inside double cross*********\n')
       }
-      sellFlag=sellFlag||(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess)
+      #sellFlag=sellFlag||(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess)
       if(sellFlag){
         isPurchaseOn=FALSE
         buyingRow=purchase.positions[nrow(purchase.positions),]
         buyDate=(as.Date(as.numeric(buyingRow$Date)))
         buyingPrice=getClosingPrice(symbol,buyDate)
-        #cat('buyingPrice',buyingPrice,'\n')
+        cat('sell...........',buyingPrice,'\n')
         sellingPrice=getClosingPrice(symbol,date)
         profit=(sellingPrice-buyingPrice)
         profitPerc=profit/buyingPrice
@@ -68,9 +68,10 @@ getProfitPerc<-function(symbol,macdData){
       }
       
     }
-    if(!isPurchaseOn && !is.na(isMacdLess) && isMacdLess && isRising(2,macdData,row,'macd')){
+    #if(!isPurchaseOn && !is.na(isMacdLess) && isMacdLess && isRising(2,macdData,row,'macd')){
+    if(!isPurchaseOn && isRising(3,macdData,row,'histogram')){
       #print(isRising(2,dailyMacdData,row,'macd'))
-      #cat("is less",macd,signal,as.character(date),"\n")
+      cat("buy.................",macd,signal,as.character(date),"\n")
       isPurchaseOn=TRUE
       purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0,0)
       hasMacdCrossed=FALSE
@@ -92,7 +93,7 @@ swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successM
 #get all ticker data using symbols
 for(symbol in tickers$Symbol){
 #for(symbol in c('ASIANPAINT')){
-  symbol='BAJFINANCE'
+  #symbol='BAJFINANCE'
   tickerData<-getOrgTickerData(symbol)
   #daily daa
   dailyMacdData  <- MACD( tickerData[,4], 12, 26, 9, maType="EMA",percent = F )
@@ -109,6 +110,7 @@ for(symbol in tickers$Symbol){
   #print(result$purchaseData)
   cat('symobl',symbol,'perc',result$profitPerc,'\n','trades',result$successTradesPerc)
 }
+prev.swing.trad<-swing.trading.data
 
 swing.trading.data.macd<-subset(swing.trading.data,(successMacd>.75&ProfitPerc>.15) )
 nrow(subset(swing.trading.data,ProfitPerc<=0))
