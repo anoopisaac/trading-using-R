@@ -130,6 +130,7 @@ for(year in dates){
   }
 }
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
+sum(as.numeric(subset(backTestData,year=='2018-05-01')$ProfitPerc))
 
 
 
