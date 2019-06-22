@@ -129,6 +129,7 @@ for(year in dates){
     swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts)
   }
 }
+sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
 
 
 
