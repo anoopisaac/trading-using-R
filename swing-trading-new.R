@@ -49,7 +49,7 @@ getProfitPerc<-function(symbol,macdData){
       
       buyingRow=purchase.positions[nrow(purchase.positions),]
       buyDate=(as.Date(as.numeric(buyingRow$Date)))
-      sellFlag=isFalling(3,macdData,row,'histogram')
+      sellFlag=isFalling(2,macdData,row,'histogram')
       #cat('inside purchase',buyDate,sellFlag,hasMacdCrossed,"\n")
       if(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess){
         #cat('inside double cross*********\n')
@@ -69,7 +69,7 @@ getProfitPerc<-function(symbol,macdData){
       
     }
     #if(!isPurchaseOn && !is.na(isMacdLess) && isMacdLess && isRising(2,macdData,row,'macd')){
-    if(!isPurchaseOn && isRising(3,macdData,row,'histogram')){
+    if(!isPurchaseOn && isRising(2,macdData,row,'histogram')){
       #print(isRising(2,dailyMacdData,row,'macd'))
       cat("buy.................",macd,signal,as.character(date),"\n")
       isPurchaseOn=TRUE
@@ -81,35 +81,59 @@ getProfitPerc<-function(symbol,macdData){
   }
   
   purchase.positions$DateString=as.Date(as.numeric(purchase.positions[,'Date']))
+  tradeCounts=nrow(subset(purchase.positions,Type=='S'))
   successTrades=nrow(subset(purchase.positions,Profit>0&Type=='S'))
-  successTradesPerc=successTrades/nrow(subset(purchase.positions,Type=='S'))
+  successTradesPerc=successTrades/tradeCounts
   purchase.positions$ClosingPrice=getClosingPrice('w',as.Date(as.numeric(purchase.positions[,'Date'])))
   #purchase.positions<-purchase.positions[as.Date(as.numeric(purchase.positions$Date))>as.Date(startDate),]
-  return(list(profitPerc=sum(as.numeric(purchase.positions[,'ProfitPerc'])),purchaseData=purchase.positions,successTradesPerc=successTradesPerc))
+  return(list(profitPerc=sum(as.numeric(purchase.positions[,'ProfitPerc'])),purchaseData=purchase.positions,successTradesPerc=successTradesPerc,tradeCounts=tradeCounts))
   
 }
 
-swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),stringsAsFactors = FALSE) 
-#get all ticker data using symbols
-for(symbol in tickers$Symbol){
-#for(symbol in c('ASIANPAINT')){
-  #symbol='BAJFINANCE'
-  tickerData<-getOrgTickerData(symbol)
-  #daily daa
-  dailyMacdData  <- MACD( tickerData[,4], 12, 26, 9, maType="EMA",percent = F )
-  dailyMacdData<-dailyMacdData[index(dailyMacdData)>as.Date("2018-05-01"),]
-  #weeklydata
-  weeklyMacData=getMacdDataByTicker(tickerData)
-  weeklyMacData<-weeklyMacData[index(weeklyMacData)>as.Date("2017-05-01"),]
-  result=getProfitPerc(symbol,weeklyMacData)
-  successMacd=return.stats[return.stats$Symbol==symbol,]$SuccessMacd
-  swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc)
-  #getting macd success percentage from return.stats
-  
-  purchase.postions<-result$purchaseData
-  #print(result$purchaseData)
-  cat('symobl',symbol,'perc',result$profitPerc,'\n','trades',result$successTradesPerc)
+swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),stringsAsFactors = FALSE) 
+
+backTest<-function(symbolList,startDate){
+  backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),stringsAsFactors = FALSE) 
+  #get all ticker data using symbols
+  #for(symbol in tickers$Symbol){
+  for(symbol in symbolList){
+    #symbol='BAJFINANCE'
+    tickerData<-getOrgTickerData(symbol)
+    #daily daa
+    #dailyMacdData  <- MACD( tickerData[,4], 12, 26, 9, maType="EMA",percent = F )
+    #dailyMacdData<-dailyMacdData[index(dailyMacdData)>as.Date("2018-05-01"),]
+    #weeklydata
+    weeklyMacData=getMacdDataByTicker(tickerData)
+    #weeklyMacData<-weeklyMacData[index(weeklyMacData)>as.Date("2015-05-01")& index(weeklyMacData)<as.Date("2016-05-01"),]
+    weeklyMacData<-weeklyMacData[index(weeklyMacData)>as.Date(startDate) & index(weeklyMacData)<as.Date(startDate) + years(1),]
+    result=getProfitPerc(symbol,weeklyMacData)
+    successMacd=return.stats[return.stats$Symbol==symbol,]$SuccessMacd
+    backTestData[nrow(backTestData)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts)
+    #getting macd success percentage from return.stats
+    
+    purchase.postions<-result$purchaseData
+    #print(result$purchaseData)
+    cat('symobl',symbol,'perc',result$profitPerc,'\n','success trades',result$successTradesPerc,'trade counts',result$tradeCounts,'sumacd',successMacd)
+  }
+  return(backTestData)
 }
+symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
+backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),year=character(),stringsAsFactors = FALSE) 
+dates=c("2018-05-01","2017-05-01","2016-05-01","2015-05-01")
+for(year in dates){
+  tempData<-backTest(symbolList,year)
+  for(i in 1:nrow(tempData)){
+    rowIndex=nrow(backTestData)+1
+    backTestData[rowIndex, ] <- tempData[i,]
+    backTestData[rowIndex,'year']=year
+    swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts)
+  }
+}
+
+
+
+
+
 prev.swing.trad<-swing.trading.data
 
 swing.trading.data.macd<-subset(swing.trading.data,(successMacd>.75&ProfitPerc>.15) )
