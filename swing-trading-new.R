@@ -19,13 +19,14 @@ isRising<-function(prevRowsToCheck,data,rowIndex,colName){
 }
 
 getClosingPrice<-function(symbol,date){
+  print(symbol)
+  tickerData<-getOrgTickerData(symbol)
   return(as.numeric(tickerData[date,4]))
 }
 
 #get profit in perc by creating seris of buy/sell positions
 #macdData - is fetched from global data populated elsewhere
 getProfitPerc<-function(symbol,macdData){
-  
   #manually find histogram by subtracting macd value from signal line
   macdData$histogram=as.numeric(macdData[,'macd'])-as.numeric(macdData[,'signal'])
   #creating dataframe to store buy sell positions
@@ -85,14 +86,19 @@ getProfitPerc<-function(symbol,macdData){
   tradeCounts=nrow(subset(purchase.positions,Type=='S'))
   successTrades=nrow(subset(purchase.positions,Profit>0&Type=='S'))
   successTradesPerc=successTrades/tradeCounts
-  purchase.positions$ClosingPrice=getClosingPrice('w',as.Date(as.numeric(purchase.positions[,'Date'])))
-  isBuyOn=purchase.positions[nrow(purchase.positions),]$Type=='B'
+  #purchase.positions$ClosingPrice=getClosingPrice(purchase.positions[,'Date'],as.Date(as.numeric(purchase.positions[,'Date'])))
+  if(nrow(purchase.positions)==0){
+    isBuyOn=FALSE
+  } else{
+    isBuyOn=purchase.positions[nrow(purchase.positions),]$Type=='B'
+  }
+  
   #purchase.positions<-purchase.positions[as.Date(as.numeric(purchase.positions$Date))>as.Date(startDate),]
   return(list(profitPerc=sum(as.numeric(purchase.positions[,'ProfitPerc'])),purchaseData=purchase.positions,successTradesPerc=successTradesPerc,tradeCounts=tradeCounts,isBuyOn=isBuyOn))
   
 }
 
-swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),stringsAsFactors = FALSE) 
+#swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),stringsAsFactors = FALSE) 
 
 backTest<-function(symbolList,startDate){
   #backtest data for passed symbol for the spceified timefram
@@ -107,23 +113,31 @@ backTest<-function(symbolList,startDate){
     weeklyMacData=getMacdDataByTicker(tickerData)
     #pulling the data for desired time frame
     weeklyMacData<-weeklyMacData[index(weeklyMacData)>as.Date(startDate) & index(weeklyMacData)<as.Date(startDate) + years(1),]
+    cat('weeklydata............##########',symbol,nrow(weeklyMacData),startDate,'\n')
     result=getProfitPerc(symbol,weeklyMacData)
     #this return.stats holds the percentage of the time macd was greater that 0. which mean 26 weeks ema > 12 weeks ema
     successMacd=return.stats[return.stats$Symbol==symbol,]$SuccessMacd
+    print(result)
     backTestData[nrow(backTestData)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,result$isBuyOn)
     #getting macd success percentage from return.stats
     
     purchase.postions<-result$purchaseData
     #print(result$purchaseData)
-    cat('symobl',symbol,'perc',result$profitPerc,'\n','success trades',result$successTradesPerc,'trade counts',result$tradeCounts,'sumacd',successMacd)
+    #cat('symobl',symbol,'perc',result$profitPerc,'success trades',result$successTradesPerc,'trade counts',result$tradeCounts,'sumacd',successMacdl,'\n')
   }
   return(backTestData)
 }
 symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
+symbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','MARICO','SRF','KOTAKBANK','RELIANCE')
+
+#initializing dataframe
 backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),year=character(),stringsAsFactors = FALSE) 
 dates=c("2018-05-01","2017-05-01","2016-05-01","2015-05-01")
+
+
 for(year in dates){
   tempData<-backTest(symbolList,year)
+  print(tempData)
   for(i in 1:nrow(tempData)){
     rowIndex=nrow(backTestData)+1
     backTestData[rowIndex, ] <- tempData[i,]
@@ -131,6 +145,8 @@ for(year in dates){
     #swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,,result$isBuyOn)
   }
 }
+
+
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$ProfitPerc))
 

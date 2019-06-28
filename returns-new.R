@@ -6,7 +6,7 @@ library(dplyr)
 #step.1.01 - execute all methods
 populateReturnData<-function(){
   
-  return.stats <- data.frame(Symbol=numeric(), total=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
+  return.stats <- data.frame(Symbol=numeric(), total=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(), SuccessMacdLastYear=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
   count=0
   for(symbol in tickers$Symbol){
     print(symbol)
