@@ -1,6 +1,7 @@
 #step.1
 library(quantmod)
 library(lubridate)
+library(dplyr) 
 
 #step.1.01 - execute all methods
 populateReturnData<-function(){
@@ -13,16 +14,26 @@ populateReturnData<-function(){
     count=count+1
     orgTickerData<-getOrgTickerData(symbol)
     quarters<-profitQuarterly(orgTickerData[,4])
+    cat(orgTickerData[1,],'\n')
+    result = tryCatch({
+      macdData<-getMacdDataByTicker(orgTickerData)
+    }, warning = function(w) {
+      print(w)
+    }, error = function(e) {
+      print(e)
+    }, finally = {
+      #cleanup-code
+    })
     
-    macdData<-getMacdDataByTicker(orgTickerData)
     #this is done this way because EMA depends on previous EMAs, so it needs to have data since 2014 for 2015 onwards data to work
     macdData<-macdData[index(macdData)>='2015-01-01']
     #list of macd where the value is above zero, which i assume, would mean its 12 weeks average is above 26 week average
     successMacdsPercByWeek<-getMacdStats(macdData)
+    successMacdPercLastYear<-getMacdStatsLasYear(macdData)
     lastYearReturn<-getLastYearReturn(orgTickerData[,4])
-    failureMonthsPercentile<-getFailureMonthsPercentile(macdData)
+    #failureMonthsPercentile<-getFailureMonthsPercentile(macdData)
     #cat(symbol,is.na(lastYearReturn))
-    return.stats[count, ] <- c(symbol, quarters$total,quarters$success,successMacdsPercByWeek,lastYearReturn,failureMonthsPercentile)
+    return.stats[count, ] <- c(symbol, quarters$total,quarters$success,successMacdsPercByWeek,successMacdPercLastYear,lastYearReturn,-11)
     #return.stats.from.2015=return.stats[index(return.stats)>'2015-01-01']
     #return.stats[count, ] <- c(1,1,2)
     #print(count)
@@ -70,7 +81,6 @@ getOrgTickerData<-function(symbolName,date){
   tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
   tickerData<-na.omit(tickerData)
   #tickerData<-tickerData[index(tickerData)>='2015-01-01']
-  na.omit(tickerData)
   return(tickerData)
 }
 
@@ -84,16 +94,6 @@ getMacdDataByTicker<-function(orgTickerData){
   return(weekMacd)
 }
 
-
-for(symbol in tickers$Symbol){
-  getMacdDataByTicker(symbol)
-}
-library(dplyr) 
-
-asianpaint.macd.data %>% filter(macd>0)
-starwars %>% filter(mass > mean(mass, na.rm = TRUE))
-x <- 1:100
-filter(x, rep(1, 3))
 
 #this values should small which would denote that success macds are evenly distributed and there is concentration
 getFailureMonthsPercentile<-function(macdData){
@@ -115,26 +115,6 @@ getFailureMonthsPercentile<-function(macdData){
   #should be as low as possible which would say there not lot many months which success macds below median value
   return(percentile(3.8))
 }
-print(getFailureMonthsPercentile(adanipower.macd.data))
-length(adanipower.macd.data[!is.na(adanipower.macd.data$macd),'macd'])
-asianpaint.macd.data<-getMacdDataByTicker('ASIANPAINT')
-adanipower.macd.data<-getMacdDataByTicker('ADANIPOWER')
-length(adanipower.macd.data[!is.na(adanipower.macd.data$macd),'macd'])
-length(adanipower.macd.data[adanipower.macd.data$macd>0,'macd'])
-plot(adanipower.macd.data)
-
-length(success.data)
-length(asianpaint.macd.data$macd)
-lmonthly.success
-plot(asianpaint.macd.data$macd)
-plot(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`)
-asianpaint.week.data <- to.weekly(getOrgTickerData('ASIANPAINT'))
-asia.ema12<-(EMA(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`,12))
-asia.ema26<-(EMA(asianpaint.week.data$`getOrgTickerData("ASIANPAINT").Close`,26))
-filter(week.macd.data,signal=='ewrer')
-(asianpaint.macd.data%>%filter(any(signal>0)))
-length(asianpaint.macd.data$macd[asianpaint.macd.data$macd>0])
-asianpaint.macd.data$macd %>% filter('macd' > 0)
 
 getMacdStats<-function(macdData){
   #macdData<-getMacdDataByTicker(orgTickerData)
@@ -145,22 +125,13 @@ getMacdStats<-function(macdData){
   return(macdSuccessPerc)
 }
 
-
-summary(week.macd.data)
-length(week.macd.data[!is.na(week.macd.data$macd),'macd'])
-length(week.macd.data[week.macd.data$macd<0,'macd'])
-findPercMacdGoingBelow(week.macd.data)
-as.numeric(week.macd.data[,'macd'])->week.macd.data[,'macd']
-lapply(week.macd.data,is.numeric)
-
-#dpont refer this, this is wrong code
-profitMonths <- function(symbolName) 
-{
-  tickerData<-getTickerData(symbolName)
-  monthly.return.data<-monthlyReturn(tickerData[,1])
-  greater.than.zero=which(monthly.return.data$monthly.returns>0)
-  return(length(greater.than.zero))
+getMacdStatsLasYear<-function(macdData){
+  endDate=Sys.Date()
+  startDate=Sys.Date() - years(1)
+  macdData<-macdData[index(macdData)>startDate & index(macdData)<endDate,]
+  return(getMacdStats(macdData))
 }
+
 
 profitQuarterly <- function(closeTickerData) 
 {
@@ -198,25 +169,3 @@ for(symbol in tickers$Symbol){
 #Step.4 get return data
 return.stats<-populateReturnData()
 
-getSumOfAllEarnings<-function(){
-  #attach(return.stats)
-  sumOfAllEarnings<-sum(head(return.stats[order(-SuccessMacd),],10)[,4])
-  #return(sumOfAllEarnings)
-}
-
-
-
-orgTickerData<-getOrgTickerData('ASIANPAINT')
-quarters<-profitQuarterly(orgTickerData[,4])
-
-macdData<-getMacdDataByTicker(orgTickerData)
-plot(macdData)
-#this is done this way because EMA depends on previous EMAs, so it needs to have data since 2014 for 2015 onwards data to work
-macdData<-macdData[index(macdData)>='2015-01-01']
-plot(macdData)
-
-
-getSymbols(sprintf('%s%s','ASIANPAINT','.NS'),from="2014-01-01")
-
-MUTHOOTFIN.NS['2018-01-01']
-MUTHOOTFIN.NS['2018-12-31']
