@@ -102,32 +102,36 @@ getProfitPerc<-function(symbol,macdData){
 
 backTest<-function(symbolList,startDate){
   #backtest data for passed symbol for the spceified timefram
-  backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),stringsAsFactors = FALSE) 
+  dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),stringsAsFactors = FALSE) 
   
   #backtesting for all the filtered symbols- the one with high macd success ratio for the last 5 years
   for(symbol in symbolList){
-    #symbol='BAJFINANCE'
+    symbol='BAJFINANCE'
+    startDate="2018-05-01"
+    #endDate="2019-05-01"
+    dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),stringsAsFactors = FALSE) 
+    
     #get ticcker data pulled and kept in global dataframe
     tickerData<-getOrgTickerData(symbol)
     #weekly macd data
     weeklyMacData=getMacdDataByTicker(tickerData)
     #pulling the data for desired time frame
-    weeklyMacData<-weeklyMacData[index(weeklyMacData)>as.Date(startDate) & index(weeklyMacData)<as.Date(startDate) + years(1),]
+    weeklyMacData<-weeklyMacData[index(weeklyMacData)>as.Date(startDate) & index(weeklyMacData)<=(as.Date(startDate) + years(1)),]
     cat('weeklydata............##########',symbol,nrow(weeklyMacData),startDate,'\n')
     result=getProfitPerc(symbol,weeklyMacData)
     #this return.stats holds the percentage of the time macd was greater that 0. which mean 26 weeks ema > 12 weeks ema
     successMacd=return.stats[return.stats$Symbol==symbol,]$SuccessMacd
     print(result)
-    backTestData[nrow(backTestData)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,result$isBuyOn)
+    dateRangeBacktestData[nrow(dateRangeBacktestData)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,result$isBuyOn)
     #getting macd success percentage from return.stats
     
     purchase.postions<-result$purchaseData
     #print(result$purchaseData)
     #cat('symobl',symbol,'perc',result$profitPerc,'success trades',result$successTradesPerc,'trade counts',result$tradeCounts,'sumacd',successMacdl,'\n')
   }
-  return(backTestData)
+  return(dateRangeBacktestData)
 }
-symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
+#symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
 symbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','MARICO','SRF','KOTAKBANK','RELIANCE')
 
 #initializing dataframe
@@ -149,8 +153,10 @@ for(year in dates){
 
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$ProfitPerc))
+#sum(as.numeric(subset(backTestData,Symbol=='BAJAJFINSV')$ProfitPerc))
 
 
+subset(backTestData,year=='2018-05-01') %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(ProfitPerc)))%>% arrange(desc(B))
 
 
 
