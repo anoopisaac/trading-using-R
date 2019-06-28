@@ -22,33 +22,33 @@ getClosingPrice<-function(symbol,date){
   return(as.numeric(tickerData[date,4]))
 }
 
+#get profit in perc by creating seris of buy/sell positions
+#macdData - is fetched from global data populated elsewhere
 getProfitPerc<-function(symbol,macdData){
   
-  
+  #manually find histogram by subtracting macd value from signal line
   macdData$histogram=as.numeric(macdData[,'macd'])-as.numeric(macdData[,'signal'])
+  #creating dataframe to store buy sell positions
   purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),ProfitPerc=numeric(),stringsAsFactors = FALSE) 
   isPurchaseOn=FALSE
   hasMacdCrossed=FALSE
   #for (row in startIndex:endIndex) {
   for (row in 1:nrow(macdData)) {
-    #check<-
     macd <- as.numeric(macdData[row, "macd"])
     signal  <- as.numeric(macdData[row, "signal"])
     date<-index(macdData[row])
     isMacdLess=macd<signal
     isMacdGreater=macd>signal
     
-    #hasMacdCrossed=hasCrossed(dailyMacdData,row)
-    #cat('ispurchaseon...',isPurchaseOn,'crossed',hasMacdCrossed,as.character(date),"\n")
-    # will only sell if it crosses the signal line
     if(isPurchaseOn ){
       #this needs to be done only once in purchase cycle
       if(hasMacdCrossed==FALSE){
         hasMacdCrossed=!is.na(isMacdGreater)&&isMacdGreater
       }
-      
+      #buying row will be the last one.
       buyingRow=purchase.positions[nrow(purchase.positions),]
       buyDate=(as.Date(as.numeric(buyingRow$Date)))
+      #for now iam only checking this condition to decide to sell. should be falling for consequtive 3 weeks incluing current week
       sellFlag=isFalling(2,macdData,row,'histogram')
       #cat('inside purchase',buyDate,sellFlag,hasMacdCrossed,"\n")
       if(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess){
@@ -59,6 +59,7 @@ getProfitPerc<-function(symbol,macdData){
         isPurchaseOn=FALSE
         buyingRow=purchase.positions[nrow(purchase.positions),]
         buyDate=(as.Date(as.numeric(buyingRow$Date)))
+        #is fetched from global data, if macd is weekly data, this will be the price when then week ends
         buyingPrice=getClosingPrice(symbol,buyDate)
         cat('sell...........',buyingPrice,'\n')
         sellingPrice=getClosingPrice(symbol,date)
@@ -85,8 +86,9 @@ getProfitPerc<-function(symbol,macdData){
   successTrades=nrow(subset(purchase.positions,Profit>0&Type=='S'))
   successTradesPerc=successTrades/tradeCounts
   purchase.positions$ClosingPrice=getClosingPrice('w',as.Date(as.numeric(purchase.positions[,'Date'])))
+  isBuyOn=purchase.positions[nrow(purchase.positions),]$Type=='B'
   #purchase.positions<-purchase.positions[as.Date(as.numeric(purchase.positions$Date))>as.Date(startDate),]
-  return(list(profitPerc=sum(as.numeric(purchase.positions[,'ProfitPerc'])),purchaseData=purchase.positions,successTradesPerc=successTradesPerc,tradeCounts=tradeCounts))
+  return(list(profitPerc=sum(as.numeric(purchase.positions[,'ProfitPerc'])),purchaseData=purchase.positions,successTradesPerc=successTradesPerc,tradeCounts=tradeCounts,isBuyOn=isBuyOn))
   
 }
 
@@ -94,8 +96,8 @@ swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successM
 
 backTest<-function(symbolList,startDate){
   backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),stringsAsFactors = FALSE) 
-  #get all ticker data using symbols
-  #for(symbol in tickers$Symbol){
+  
+  #backtesting for all the filtered symbols- the one with high macd success ratio for the last 5 years
   for(symbol in symbolList){
     #symbol='BAJFINANCE'
     tickerData<-getOrgTickerData(symbol)
