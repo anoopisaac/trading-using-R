@@ -86,7 +86,7 @@ getProfitPerc<-function(symbol,macdData){
   tradeCounts=nrow(subset(purchase.positions,Type=='S'))
   successTrades=nrow(subset(purchase.positions,Profit>0&Type=='S'))
   successTradesPerc=successTrades/tradeCounts
-  #purchase.positions$ClosingPrice=getClosingPrice(purchase.positions[,'Date'],as.Date(as.numeric(purchase.positions[,'Date'])))
+  purchase.positions$ClosingPrice=getClosingPrice(symbol,as.Date(as.numeric(purchase.positions[,'Date'])))
   if(nrow(purchase.positions)==0){
     isBuyOn=FALSE
   } else{
