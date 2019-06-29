@@ -4,7 +4,7 @@ library(lubridate)
 library(dplyr) 
 
 #step.1.01 - execute all methods
-populateReturnData<-function(){
+populateReturnData<-function(exchange='.NS'){
   
   return.stats <- data.frame(Symbol=numeric(), total=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(), SuccessMacdLastYear=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
   count=0
@@ -12,7 +12,7 @@ populateReturnData<-function(){
     print(symbol)
     #for(symbol in c('ASIANPAINT')){
     count=count+1
-    orgTickerData<-getOrgTickerData(symbol)
+    orgTickerData<-getOrgTickerData(symbol,exchange)
     quarters<-profitQuarterly(orgTickerData[,4])
     cat(orgTickerData[1,],'\n')
     result = tryCatch({
@@ -77,8 +77,8 @@ getTickerData<-function(symbolName){
   return(tickerData[,4])
 }
 
-getOrgTickerData<-function(symbolName,date){
-  tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
+getOrgTickerData<-function(symbolName,date,exchange='.NS'){
+  tickerData<-get(sprintf('%s%s',symbolName,exchange))
   tickerData<-na.omit(tickerData)
   #tickerData<-tickerData[index(tickerData)>='2015-01-01']
   return(tickerData)
@@ -163,29 +163,30 @@ colnames(return.stats.bse) <- c("symbol", "success-quarters","success-macd-by-we
 tickers.ns <- read.csv(file=file.path("nifty", "200"), header=T)
 tickers.bs.all <- read.csv(file=file.path("bse", "all"), header=T)
 tickers.bs.200.code<- read.csv(file=file.path("bse", "200.code"), header=T)
+tickers.bs<- read.csv(file=file.path("bse", "200"), header=T)
 desiredSymbols<-c()
 count=0
 for (securityCode in tickers.bs.200.code$code){
   count=count+1
   desiredSymbol=subset(tickers.bs.all,code==securityCode)
-  tickers.bs.200.code[count,'symbol']=desiredSymbol[2]
+  tickers.bs.200.code[count,'Symbol']=desiredSymbol[2]
   # print(desiredSymbol)
   # print('wreewr')
   #[length(desiredSymbols)+1]=desiredSymbol[2]
   #print(desiredCode)
 }
-tickers.bs.200.code$Symbol<-desiredSymbols
+write.csv(tickers.bs.200.code,'C:\\Users\\anoop\\dream\\running\\r-stock-trading\\bse\\200', row.names = FALSE)
 #Step.3
 #get all ticker data using symbols
 for(symbol in tickers.bs$Symbol){
   print(symbol)
-  getSymbols(sprintf('%s%s',symbol,'.BOM'),from="2014-01-01")
+  getSymbols(sprintf('%s%s',symbol,'.BO'),from="2014-01-01")
 }
 
 
-getSymbols("ABB.BO", src="yahoo")
-getSymbols("ABB.BOM", src="yahoo")
-getSymbols("500002.BOM", src="yahoo")
+# getSymbols("ABB.BO", src="yahoo")
+# getSymbols("ABB.BOM", src="yahoo")
+# getSymbols("500002.BOM", src="yahoo")
 #Step.3
 #get all ticker data using symbols
 for(symbol in tickers$Symbol){
