@@ -75,6 +75,12 @@ getOrgTickerData<-function(symbolName,date){
 }
 
 #finding macd line that goes below zero when plotted in weeks
+getMacdDailyDataByTicker<-function(orgTickerData){
+  dailyMacd  <- MACD( orgTickerData[,4], 12, 26, 9, maType="EMA",percent = F )
+  return(dailyMacd)
+}
+
+#finding macd line that goes below zero when plotted in weeks
 getMacdDataByTicker<-function(orgTickerData){
   weekData <- to.weekly(orgTickerData)
   #print(sprintf("%s %s",symbolName,length(weekData)))

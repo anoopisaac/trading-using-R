@@ -100,25 +100,32 @@ getProfitPerc<-function(symbol,macdData){
 
 #swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),stringsAsFactors = FALSE) 
 
-backTest<-function(symbolList,startDate){
+backTest<-function(symbolList,startDate,endDate,type){
   #backtest data for passed symbol for the spceified timefram
   dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),stringsAsFactors = FALSE) 
   
   #backtesting for all the filtered symbols- the one with high macd success ratio for the last 5 years
   for(symbol in symbolList){
-    symbol='BAJFINANCE'
-    startDate="2018-05-01"
-    #endDate="2019-05-01"
-    dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),stringsAsFactors = FALSE) 
+    # symbol='BAJFINANCE'
+    # startDate="2018-05-01"
+    # endDate="2019-05-01"
+    #dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),stringsAsFactors = FALSE) 
     
     #get ticcker data pulled and kept in global dataframe
     tickerData<-getOrgTickerData(symbol)
     #weekly macd data
-    weeklyMacData=getMacdDataByTicker(tickerData)
+    #macdData=getMacdDataByTicker(tickerData)
+    #dailydata
+    if(type=='W'){
+      macdData=getMacdDataByTicker(tickerData)
+    } else{
+      macdData=getMacdDailyDataByTicker(tickerData)
+    }
+    
     #pulling the data for desired time frame
-    weeklyMacData<-weeklyMacData[index(weeklyMacData)>as.Date(startDate) & index(weeklyMacData)<=(as.Date(startDate) + years(1)),]
-    cat('weeklydata............##########',symbol,nrow(weeklyMacData),startDate,'\n')
-    result=getProfitPerc(symbol,weeklyMacData)
+    macdData<-macdData[index(macdData)>startDate & index(macdData)<=endDate,]
+    cat('weeklydata............##########',symbol,nrow(macdData),startDate,'\n')
+    result=getProfitPerc(symbol,macdData)
     #this return.stats holds the percentage of the time macd was greater that 0. which mean 26 weeks ema > 12 weeks ema
     successMacd=return.stats[return.stats$Symbol==symbol,]$SuccessMacd
     print(result)
@@ -132,7 +139,8 @@ backTest<-function(symbolList,startDate){
   return(dateRangeBacktestData)
 }
 #symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
-symbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','MARICO','SRF','KOTAKBANK','RELIANCE')
+weeklySymbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','MARICO','SRF','KOTAKBANK','RELIANCE')
+dailySymbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','SRF','KOTAKBANK','RELIANCE')
 
 #initializing dataframe
 backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),year=character(),stringsAsFactors = FALSE) 
@@ -140,7 +148,11 @@ dates=c("2018-05-01","2017-05-01","2016-05-01","2015-05-01")
 
 
 for(year in dates){
-  tempData<-backTest(symbolList,year)
+  startDate=as.Date(year)
+  endDate=as.Date(startDate) + years(1);
+  tempData<-backTest(dailySymbolList,startDate,endDate,'D')
+  # tempData<-backTest(weeklySymbolList,startDate,endDate,'W')
+  # tempData<-backTest(symbolList,"2019-01-01","2019-06-28")
   print(tempData)
   for(i in 1:nrow(tempData)){
     rowIndex=nrow(backTestData)+1
@@ -149,6 +161,10 @@ for(year in dates){
     #swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,,result$isBuyOn)
   }
 }
+
+symbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','MARICO','SRF','KOTAKBANK','RELIANCE')
+#for checking whether buy is on
+isBuyOnData<-backTest(symbolList,"2019-01-01","2019-06-28")
 
 
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))

@@ -153,17 +153,45 @@ getwd()
 return.stats<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(return.stats) <- c("symbol", "success-quarters","success-macd-by-week")
 
+#Step.1.3 initiating dataframes
+#init quarterly/monthly return data
+return.stats.bse<-data.frame(matrix(ncol = 3, nrow = 0))
+colnames(return.stats.bse) <- c("symbol", "success-quarters","success-macd-by-week")
+
 #step.2
 #init ticker symbols
-tickers <- read.csv(file=file.path("nifty", "200"), header=T)
+tickers.ns <- read.csv(file=file.path("nifty", "200"), header=T)
+tickers.bs.all <- read.csv(file=file.path("bse", "all"), header=T)
+tickers.bs.200.code<- read.csv(file=file.path("bse", "200.code"), header=T)
+desiredSymbols<-c()
+count=0
+for (securityCode in tickers.bs.200.code$code){
+  count=count+1
+  desiredSymbol=subset(tickers.bs.all,code==securityCode)
+  tickers.bs.200.code[count,'symbol']=desiredSymbol[2]
+  # print(desiredSymbol)
+  # print('wreewr')
+  #[length(desiredSymbols)+1]=desiredSymbol[2]
+  #print(desiredCode)
+}
+tickers.bs.200.code$Symbol<-desiredSymbols
+#Step.3
+#get all ticker data using symbols
+for(symbol in tickers.bs$Symbol){
+  print(symbol)
+  getSymbols(sprintf('%s%s',symbol,'.BOM'),from="2014-01-01")
+}
 
 
-
+getSymbols("ABB.BO", src="yahoo")
+getSymbols("ABB.BOM", src="yahoo")
+getSymbols("500002.BOM", src="yahoo")
 #Step.3
 #get all ticker data using symbols
 for(symbol in tickers$Symbol){
   getSymbols(sprintf('%s%s',symbol,'.NS'),from="2014-01-01")
 }
+
 
 
 #Step.4 get return data
