@@ -168,7 +168,7 @@ isBuyOnData<-backTest(symbolList,"2019-01-01","2019-06-28")
 
 
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
-sum(as.numeric(subset(backTestData,year=='2018-05-01')$ProfitPerc))
+sum(as.numeric(subset(backTestData,year=='2015-05-01')$ProfitPerc))
 #sum(as.numeric(subset(backTestData,Symbol=='BAJAJFINSV')$ProfitPerc))
 
 

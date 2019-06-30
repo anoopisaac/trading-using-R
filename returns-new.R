@@ -4,27 +4,30 @@ library(lubridate)
 library(dplyr) 
 
 #step.1.01 - execute all methods
-populateReturnData<-function(exchange='.NS'){
+populateReturnData<-function(exchange,tickers){
   
   return.stats <- data.frame(Symbol=numeric(), total=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(), SuccessMacdLastYear=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
   count=0
   for(symbol in tickers$Symbol){
+    # if exception happens this will be turned to true
     print(symbol)
     #for(symbol in c('ASIANPAINT')){
     count=count+1
-    orgTickerData<-getOrgTickerData(symbol,exchange)
-    quarters<-profitQuarterly(orgTickerData[,4])
-    cat(orgTickerData[1,],'\n')
+    
     result = tryCatch({
+      orgTickerData<-getOrgTickerData(symbol,exchange)
+      quarters<-profitQuarterly(orgTickerData[,4])
+      cat(orgTickerData[1,],'\n')
       macdData<-getMacdDataByTicker(orgTickerData)
     }, warning = function(w) {
       print(w)
     }, error = function(e) {
-      print(e)
     }, finally = {
-      #cleanup-code
     })
-    
+    if(is.null(result)){
+      cat("failed....................",symbol,exchange,'\n')
+      next
+    }
     #this is done this way because EMA depends on previous EMAs, so it needs to have data since 2014 for 2015 onwards data to work
     macdData<-macdData[index(macdData)>='2015-01-01']
     #list of macd where the value is above zero, which i assume, would mean its 12 weeks average is above 26 week average
@@ -65,19 +68,19 @@ getLastYearReturn<-function(closeTickerData){
 print(getLastYearReturn('BANDHANBNK'))
 print(getLastYearReturn('ASIANPAINT'))
 getLastQuarterReturn<-function(symbolName){
-  quarterly.return.data<-quarterlyReturn(getTickerData(symbolName)[,1])
+  quarterly.return.data<-quarterlyReturn(getOrgTickerData(symbolName)[,1])
   #print(quarterly.return.data[-1])
   #print(sprintf('return:::: %s',quarterly.return.data[,1]))
   return(tail(quarterly.return.data,1))
 }
 
-getTickerData<-function(symbolName){
-  tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
-  tickerData<-na.omit(tickerData)
-  return(tickerData[,4])
-}
+# getTickerData<-function(symbolName){
+#   tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
+#   tickerData<-na.omit(tickerData)
+#   return(tickerData[,4])
+# }
 
-getOrgTickerData<-function(symbolName,date,exchange='.NS'){
+getOrgTickerData<-function(symbolName,exchange){
   tickerData<-get(sprintf('%s%s',symbolName,exchange))
   tickerData<-na.omit(tickerData)
   #tickerData<-tickerData[index(tickerData)>='2015-01-01']
@@ -142,40 +145,11 @@ profitQuarterly <- function(closeTickerData)
   return (list(success=length(greater.than.zero),total=length(quarterly.return.data)))
 }
 
-
-#Step1.1
-setwd('C:/Users/anoop/dream/running/r-stock-trading')
-getwd()
-
-
 #Step.1.2 initiating dataframes
 #init quarterly/monthly return data
 return.stats<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(return.stats) <- c("symbol", "success-quarters","success-macd-by-week")
 
-#Step.1.3 initiating dataframes
-#init quarterly/monthly return data
-return.stats.bse<-data.frame(matrix(ncol = 3, nrow = 0))
-colnames(return.stats.bse) <- c("symbol", "success-quarters","success-macd-by-week")
-
-#step.2
-#init ticker symbols
-tickers.ns <- read.csv(file=file.path("nifty", "200"), header=T)
-tickers.bs.all <- read.csv(file=file.path("bse", "all"), header=T)
-tickers.bs.200.code<- read.csv(file=file.path("bse", "200.code"), header=T)
-tickers.bs<- read.csv(file=file.path("bse", "200"), header=T)
-desiredSymbols<-c()
-count=0
-for (securityCode in tickers.bs.200.code$code){
-  count=count+1
-  desiredSymbol=subset(tickers.bs.all,code==securityCode)
-  tickers.bs.200.code[count,'Symbol']=desiredSymbol[2]
-  # print(desiredSymbol)
-  # print('wreewr')
-  #[length(desiredSymbols)+1]=desiredSymbol[2]
-  #print(desiredCode)
-}
-write.csv(tickers.bs.200.code,'C:\\Users\\anoop\\dream\\running\\r-stock-trading\\bse\\200', row.names = FALSE)
 #Step.3
 #get all ticker data using symbols
 for(symbol in tickers.bs$Symbol){
@@ -193,8 +167,8 @@ for(symbol in tickers$Symbol){
   getSymbols(sprintf('%s%s',symbol,'.NS'),from="2014-01-01")
 }
 
-
+return.stats.ns<-return.stats
 
 #Step.4 get return data
-return.stats<-populateReturnData()
+return.stats<-populateReturnData(".BO",tickers.bs)
 
