@@ -101,8 +101,9 @@ getProfitPerc<-function(symbol,macdData){
 #swing.trading.data <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),stringsAsFactors = FALSE) 
 
 backTest<-function(symbolList,startDate,endDate,type){
+  purchaseData<-list()
   #backtest data for passed symbol for the spceified timefram
-  dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),stringsAsFactors = FALSE) 
+  dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(), stringsAsFactors = FALSE) 
   
   #backtesting for all the filtered symbols- the one with high macd success ratio for the last 5 years
   for(symbol in symbolList){
@@ -132,12 +133,12 @@ backTest<-function(symbolList,startDate,endDate,type){
     print(paste('buyon',result$isBuyOn,successMacd))
     dateRangeBacktestData[nrow(dateRangeBacktestData)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,result$isBuyOn)
     #getting macd success percentage from return.stats
-    
-    purchase.postions<-result$purchaseData
+    purchaseData[[paste(startDate,symbol,sep = '')]]<-result$purchaseData
+    #purchase.postions<-result$purchaseData
     #print(result$purchaseData)
     #cat('symobl',symbol,'perc',result$profitPerc,'success trades',result$successTradesPerc,'trade counts',result$tradeCounts,'sumacd',successMacdl,'\n')
   }
-  return(dateRangeBacktestData)
+  return(list(back=dateRangeBacktestData,pur=purchaseData))
 }
 #symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
 weeklySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BERGEPAINT.NS','PIDILITIND.NS','ASIANPAINT.NS','MARICO.NS','SRF.NS','KOTAKBANK.NS','RELIANCE.NS')
@@ -146,28 +147,41 @@ dailySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BE
 #initializing dataframe
 backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),year=character(),stringsAsFactors = FALSE) 
 dates=c("2019-01-01","2018-01-01","2017-01-01","2016-01-01","2015-01-01")
-
+purchaseDf<-data.frame()
 
 for(year in dates){
   startDate=as.Date(year)
   endDate=as.Date(startDate) + years(1);
-  tempData<-backTest(dailySymbolList,startDate,endDate,'D')
+  tempData<-backTest(dailySymbolList,startDate,endDate,'D')$back
+  purchasePositions<-data$pur
   #tempData<-backTest(weeklySymbolList,startDate,endDate,'W')
   #tempData<-backTest(symbolList,"2019-01-01","2019-06-28")
-  print(tempData)
+  #print(tempData)
   for(i in 1:nrow(tempData)){
     rowIndex=nrow(backTestData)+1
     backTestData[rowIndex, ] <- tempData[i,]
     backTestData[rowIndex,'year']=year
     #swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,,result$isBuyOn)
   }
+  #for storing all the purchases that happened on above run
+  for(dateData in purchasePositions){
+    purchaseDf<-rbind(purchaseDf,dateData)
+  }
 }
 
-#for checking whether buy is on
-isBuyOnData<-backTest(weeklySymbolList,as.Date("2019-01-01"),as.Date("2019-06-30"),'W')
-isBuyOnData<-backTest(dailySymbolList,as.Date("2019-01-01"),as.Date("2019-12-30"),'D')
+#grouping and analyzing the data
+backTestData %>% group_by(year) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(year))
+backTestData %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(Symbol))
+backTestData %>% group_by(year,Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(year))
+sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
+sum(as.numeric(subset(backTestData,year=='2016-01-01')$ProfitPerc))
+subset(backTestData,year=='2018-05-01') %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(ProfitPerc)))%>% arrange(desc(B))
+
+#checking for buy ready
 isBuyOnData<-backTest(dailySymbolList,"2019-01-01","2019-08-30",'D')
-isBuyOnData<-backTest(c('ASIANPAINT.NS'),as.Date("2019-01-01"),as.Date("2019-06-28"),'W')
+isBuyOnData<-backTest(weeklySymbolList,"2019-01-01","2019-08-30",'W')
+
+
 
 
 
@@ -176,8 +190,6 @@ sum(as.numeric(subset(backTestData,year=='2016-01-01')$ProfitPerc))
 #sum(as.numeric(subset(backTestData,Symbol=='BAJAJFINSV')$ProfitPerc))
 
 
-subset(backTestData,year=='2018-05-01') %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(ProfitPerc)))%>% arrange(desc(B))
-backTestData %>% group_by(year,Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(year))
 
 
 
