@@ -172,14 +172,22 @@ for(year in dates){
 
 #grouping and analyzing the data
 backTestData %>% group_by(year) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(year))
-backTestData %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(Symbol))
-backTestData %>% group_by(year,Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(year))
+backTestData %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)),D=min(as.numeric(ProfitPerc)))%>% arrange(desc(Symbol))
+backTestData %>% group_by(year,Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)),D=min(as.numeric(ProfitPerc)))%>% arrange(desc(year))
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
 sum(as.numeric(subset(backTestData,year=='2016-01-01')$ProfitPerc))
 subset(backTestData,year=='2018-05-01') %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(ProfitPerc)))%>% arrange(desc(B))
 
 #analyzing purchase positions
 nrow(subset(purchaseDf,Symbol=='RELIANCE.NS'&Type=='S'))
+nrow(subset(purchaseDf,Symbol=='RELIANCE.NS'&Type=='S'&as.numeric(ProfitPerc>0)))
+nrow(subset(purchaseDf,Type=='S'&ProfitPerc>0))
+nrow(subset(purchaseDf,Type=='S'))
+
+subset(purchaseDf,Type=='S')%>% group_by(Symbol) %>% summarise(B = sum(as.numeric(ProfitPerc)),C =length(Symbol[ProfitPerc>0]))%>% arrange(desc(B))
+
+sum(as.numeric((subset(purchaseDf,Symbol=='RELIANCE.NS'&Type=='S'))$ProfitPerc))
+
 #checking for buy ready
 isBuyOnData<-backTest(dailySymbolList,"2019-01-01","2019-08-30",'D')
 isBuyOnData<-backTest(weeklySymbolList,"2019-01-01","2019-08-30",'W')
