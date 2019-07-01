@@ -1,10 +1,11 @@
-#step.1
+
+#you could blindly run all the below code by doing select all
+
 library(quantmod)
 library(lubridate)
 library(dplyr) 
 
-#step.1.01 - execute all methods
-populateReturnData<-function(exchange,tickers){
+populateReturnData<-function(tickers){
   
   return.stats <- data.frame(Symbol=numeric(), total=numeric(), SuccessQtrs=numeric(), SuccessMacd=numeric(), SuccessMacdLastYear=numeric(),LastYearReturn=numeric(), FailureMonthsPercentile=numeric(),stringsAsFactors=FALSE) 
   count=0
@@ -15,7 +16,7 @@ populateReturnData<-function(exchange,tickers){
     count=count+1
     
     result = tryCatch({
-      orgTickerData<-getOrgTickerData(symbol,exchange)
+      orgTickerData<-getOrgTickerData(symbol)
       quarters<-profitQuarterly(orgTickerData[,4])
       cat(orgTickerData[1,],'\n')
       macdData<-getMacdDataByTicker(orgTickerData)
@@ -25,7 +26,7 @@ populateReturnData<-function(exchange,tickers){
     }, finally = {
     })
     if(is.null(result)){
-      cat("failed....................",symbol,exchange,'\n')
+      cat("failed....................",symbol,'\n')
       next
     }
     #this is done this way because EMA depends on previous EMAs, so it needs to have data since 2014 for 2015 onwards data to work
@@ -65,35 +66,31 @@ getLastYearReturn<-function(closeTickerData){
   stockReturn<-(endValue-startValue)/startValue
   return(stockReturn)
 }
-print(getLastYearReturn('BANDHANBNK'))
-print(getLastYearReturn('ASIANPAINT'))
+#print(getLastYearReturn('BANDHANBNK'))
+#print(getLastYearReturn('ASIANPAINT'))
 getLastQuarterReturn<-function(symbolName){
   quarterly.return.data<-quarterlyReturn(getOrgTickerData(symbolName)[,1])
-  #print(quarterly.return.data[-1])
-  #print(sprintf('return:::: %s',quarterly.return.data[,1]))
   return(tail(quarterly.return.data,1))
 }
 
-# getTickerData<-function(symbolName){
-#   tickerData<-get(sprintf('%s%s',symbolName,'.NS'))
-#   tickerData<-na.omit(tickerData)
-#   return(tickerData[,4])
-# }
 
-getOrgTickerData<-function(symbolName,exchange){
-  tickerData<-get(sprintf('%s%s',symbolName,exchange))
+getOrgTickerData<-function(symbolName){
+  tickerData<-get(symbolName)
   tickerData<-na.omit(tickerData)
   #tickerData<-tickerData[index(tickerData)>='2015-01-01']
   return(tickerData)
 }
 
-#finding macd line that goes below zero when plotted in weeks
+#get daily macd data
+getMacdDailyDataByTicker<-function(orgTickerData){
+  dailyMacd  <- MACD( orgTickerData[,4], 12, 26, 9, maType="EMA",percent = F )
+  return(dailyMacd)
+}
+
+#get weekly macd data
 getMacdDataByTicker<-function(orgTickerData){
   weekData <- to.weekly(orgTickerData)
-  #print(sprintf("%s %s",symbolName,length(weekData)))
   weekMacd  <- MACD( weekData[,4], 12, 26, 9, maType="EMA",percent = F )
-  #print(EMA(weekData[,1],12))
-  #print(EMA(weekData[,1],26))
   return(weekMacd)
 }
 
@@ -150,25 +147,10 @@ profitQuarterly <- function(closeTickerData)
 return.stats<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(return.stats) <- c("symbol", "success-quarters","success-macd-by-week")
 
-#Step.3
-#get all ticker data using symbols
-for(symbol in tickers.bs$Symbol){
-  print(symbol)
-  getSymbols(sprintf('%s%s',symbol,'.BO'),from="2014-01-01")
-}
 
-
-# getSymbols("ABB.BO", src="yahoo")
-# getSymbols("ABB.BOM", src="yahoo")
-# getSymbols("500002.BOM", src="yahoo")
-#Step.3
-#get all ticker data using symbols
-for(symbol in tickers$Symbol){
-  getSymbols(sprintf('%s%s',symbol,'.NS'),from="2014-01-01")
-}
-
-return.stats.ns<-return.stats
+#getting all tickers
+combinedTickers <- read.csv(file=file.path("both", "200nb"), header=T)
 
 #Step.4 get return data
-return.stats<-populateReturnData(".BO",tickers.bs)
+return.stats<-populateReturnData(combinedTickers)
 

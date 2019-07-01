@@ -90,7 +90,7 @@ getProfitPerc<-function(symbol,macdData){
   if(nrow(purchase.positions)==0){
     isBuyOn=FALSE
   } else{
-    isBuyOn=purchase.positions[nrow(purchase.positions),]$Type=='B'
+    isBuyOn=purchase.positions[nrow(purchase.positions),'Type']=='B'
   }
   
   #purchase.positions<-purchase.positions[as.Date(as.numeric(purchase.positions$Date))>as.Date(startDate),]
@@ -127,8 +127,9 @@ backTest<-function(symbolList,startDate,endDate,type){
     cat('weeklydata............##########',symbol,nrow(macdData),startDate,'\n')
     result=getProfitPerc(symbol,macdData)
     #this return.stats holds the percentage of the time macd was greater that 0. which mean 26 weeks ema > 12 weeks ema
-    successMacd=return.stats[return.stats$Symbol==symbol,]$SuccessMacd
-    print(result)
+    
+    successMacd=return.stats[which(return.stats$Symbol == symbol),]$SuccessMacd
+    print(paste('buyon',result$isBuyOn,successMacd))
     dateRangeBacktestData[nrow(dateRangeBacktestData)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,result$isBuyOn)
     #getting macd success percentage from return.stats
     
@@ -139,20 +140,20 @@ backTest<-function(symbolList,startDate,endDate,type){
   return(dateRangeBacktestData)
 }
 #symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
-weeklySymbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','MARICO','SRF','KOTAKBANK','RELIANCE')
-dailySymbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','SRF','KOTAKBANK','RELIANCE')
+weeklySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BERGEPAINT.NS','PIDILITIND.NS','ASIANPAINT.NS','MARICO.NS','SRF.NS','KOTAKBANK.NS','RELIANCE.NS')
+dailySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BERGEPAINT.NS','PIDILITIND.NS','ASIANPAINT.NS','SRF.NS','KOTAKBANK.NS','RELIANCE.NS')
 
 #initializing dataframe
 backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),year=character(),stringsAsFactors = FALSE) 
-dates=c("2018-05-01","2017-05-01","2016-05-01","2015-05-01")
+dates=c("2019-01-01","2018-01-01","2017-01-01","2016-01-01","2015-01-01")
 
 
 for(year in dates){
   startDate=as.Date(year)
   endDate=as.Date(startDate) + years(1);
   tempData<-backTest(dailySymbolList,startDate,endDate,'D')
-  # tempData<-backTest(weeklySymbolList,startDate,endDate,'W')
-  # tempData<-backTest(symbolList,"2019-01-01","2019-06-28")
+  #tempData<-backTest(weeklySymbolList,startDate,endDate,'W')
+  #tempData<-backTest(symbolList,"2019-01-01","2019-06-28")
   print(tempData)
   for(i in 1:nrow(tempData)){
     rowIndex=nrow(backTestData)+1
@@ -162,17 +163,21 @@ for(year in dates){
   }
 }
 
-symbolList=c('BAJFINANCE','BAJAJFINSV','HDFCBANK','HAVELLS','BERGEPAINT','PIDILITIND','ASIANPAINT','MARICO','SRF','KOTAKBANK','RELIANCE')
 #for checking whether buy is on
-isBuyOnData<-backTest(symbolList,"2019-01-01","2019-06-28")
+isBuyOnData<-backTest(weeklySymbolList,as.Date("2019-01-01"),as.Date("2019-06-30"),'W')
+isBuyOnData<-backTest(dailySymbolList,as.Date("2019-01-01"),as.Date("2019-12-30"),'D')
+isBuyOnData<-backTest(dailySymbolList,"2019-01-01","2019-08-30",'D')
+isBuyOnData<-backTest(c('ASIANPAINT.NS'),as.Date("2019-01-01"),as.Date("2019-06-28"),'W')
+
 
 
 sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
-sum(as.numeric(subset(backTestData,year=='2015-05-01')$ProfitPerc))
+sum(as.numeric(subset(backTestData,year=='2016-01-01')$ProfitPerc))
 #sum(as.numeric(subset(backTestData,Symbol=='BAJAJFINSV')$ProfitPerc))
 
 
 subset(backTestData,year=='2018-05-01') %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(ProfitPerc)))%>% arrange(desc(B))
+backTestData %>% group_by(year,Symbol) %>% summarise(B = sum(as.numeric(tradeCounts)),C=sum(as.numeric(ProfitPerc)))%>% arrange(desc(year))
 
 
 

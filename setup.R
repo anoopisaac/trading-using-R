@@ -1,18 +1,26 @@
 
-#Step1.1
+#Below steps needs to be done if you want to refresh bse and nse 200 stocks data, which should be rare thing as you might be interesed only top 20
+#Step1
 setwd('C:/Users/anoop/dream/running/r-stock-trading')
 getwd()
 
 
-#Step.1.2 initiating dataframes
+#Step.2 initiating dataframes
 #init quarterly/monthly return data
 return.stats<-data.frame(matrix(ncol = 3, nrow = 0))
 colnames(return.stats) <- c("symbol", "success-quarters","success-macd-by-week")
 
-#Step.1.3 initiating dataframes
-#init quarterly/monthly return data
-return.stats.bse<-data.frame(matrix(ncol = 3, nrow = 0))
-colnames(return.stats.bse) <- c("symbol", "success-quarters","success-macd-by-week")
+
+#reading all 200 from bse and nse
+#Step.3
+combinedTickers <- read.csv(file=file.path("both", "200nb"), header=T)
+for(symbol in combinedTickers$Symbol){
+  print(symbol)
+  getSymbols(symbol,from="2014-01-01")
+}
+
+
+#code that was used to come up with initial list
 
 #step.2
 #init ticker symbols
@@ -52,5 +60,7 @@ for(index in 1:nrow(tickers.bs)){
   combinedTickers[nrow(combinedTickers)+1,]<-c(as.character(symbolName),as.character(companyName),'BSE')
   #combinedTickers[count,]<-c(ticker[,'Symbol'],ticker[,'Company Name'])
 }
+write.csv(combinedTickers,'C:\\Users\\anoop\\dream\\running\\r-stock-trading\\bse\\200nb', row.names = FALSE)
+
 
 paste("and some more", 'fun',sep="")
