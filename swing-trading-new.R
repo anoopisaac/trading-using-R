@@ -62,7 +62,7 @@ getProfitPerc<-function(symbol,macdData){
         buyDate=(as.Date(as.numeric(buyingRow$Date)))
         #is fetched from global data, if macd is weekly data, this will be the price when then week ends
         buyingPrice=getClosingPrice(symbol,buyDate)
-        cat('sell...........',buyingPrice,'\n')
+        #cat('sell...........',buyingPrice,'\n')
         sellingPrice=getClosingPrice(symbol,date)
         profit=(sellingPrice-buyingPrice)
         profitPerc=profit/buyingPrice
@@ -73,7 +73,7 @@ getProfitPerc<-function(symbol,macdData){
     #if(!isPurchaseOn && !is.na(isMacdLess) && isMacdLess && isRising(2,macdData,row,'macd')){
     if(!isPurchaseOn && isRising(2,macdData,row,'histogram')){
       #print(isRising(2,dailyMacdData,row,'macd'))
-      cat("buy.................",macd,signal,as.character(date),"\n")
+      #cat("buy.................",macd,signal,as.character(date),"\n")
       isPurchaseOn=TRUE
       purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0,0)
       hasMacdCrossed=FALSE
@@ -104,7 +104,6 @@ backTest<-function(symbolList,startDate,endDate,type){
   purchaseData<-list()
   #backtest data for passed symbol for the spceified timefram
   dateRangeBacktestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(), stringsAsFactors = FALSE) 
-  
   #backtesting for all the filtered symbols- the one with high macd success ratio for the last 5 years
   for(symbol in symbolList){
     # symbol='BAJFINANCE'
@@ -125,7 +124,7 @@ backTest<-function(symbolList,startDate,endDate,type){
     
     #pulling the data for desired time frame
     macdData<-macdData[index(macdData)>startDate & index(macdData)<=endDate,]
-    cat('weeklydata............##########',symbol,nrow(macdData),startDate,'\n')
+    cat('weeklydata............##########',symbol,nrow(macdData),as.character(startDate),'\n')
     result=getProfitPerc(symbol,macdData)
     #this return.stats holds the percentage of the time macd was greater that 0. which mean 26 weeks ema > 12 weeks ema
     
@@ -152,8 +151,9 @@ purchaseDf<-data.frame()
 for(year in dates){
   startDate=as.Date(year)
   endDate=as.Date(startDate) + years(1);
-  tempData<-backTest(dailySymbolList,startDate,endDate,'D')$back
-  purchasePositions<-data$pur
+  tempBackTestData<-backTest(dailySymbolList,startDate,endDate,'D')
+  tempData<-tempBackTestData$back
+  purchasePositions<-tempBackTestData$pur
   #tempData<-backTest(weeklySymbolList,startDate,endDate,'W')
   #tempData<-backTest(symbolList,"2019-01-01","2019-06-28")
   #print(tempData)
@@ -163,6 +163,7 @@ for(year in dates){
     backTestData[rowIndex,'year']=year
     #swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,,result$isBuyOn)
   }
+  cat('length.......',nrow(purchaseDf),year,'\n')
   #for storing all the purchases that happened on above run
   for(dateData in purchasePositions){
     purchaseDf<-rbind(purchaseDf,dateData)
@@ -177,6 +178,8 @@ sum(as.numeric(subset(backTestData,year=='2018-05-01')$tradeCounts))
 sum(as.numeric(subset(backTestData,year=='2016-01-01')$ProfitPerc))
 subset(backTestData,year=='2018-05-01') %>% group_by(Symbol) %>% summarise(B = sum(as.numeric(ProfitPerc)))%>% arrange(desc(B))
 
+#analyzing purchase positions
+nrow(subset(purchaseDf,Symbol=='RELIANCE.NS'&Type=='S'))
 #checking for buy ready
 isBuyOnData<-backTest(dailySymbolList,"2019-01-01","2019-08-30",'D')
 isBuyOnData<-backTest(weeklySymbolList,"2019-01-01","2019-08-30",'W')
