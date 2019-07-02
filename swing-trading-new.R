@@ -165,7 +165,7 @@ purchaseDf<-data.frame()
 for(year in dates){
   startDate=as.Date(year)
   endDate=as.Date(startDate) + years(1);
-  tempBackTestData<-backTest(dailySymbolList,startDate,endDate,'D')
+  tempBackTestData<-backTest(tickers.ns$Symbol,startDate,endDate,'D')
   # tempBackTestData<-backTest(weeklySymbolList,startDate,endDate,'W')
   tempData<-tempBackTestData$back
   purchasePositions<-tempBackTestData$pur
