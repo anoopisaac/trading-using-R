@@ -42,6 +42,7 @@ getProfitPerc<-function(symbol,macdData){
     isMacdGreater=macd>signal
     
     if(isPurchaseOn ){
+      sellFlag=FALSE;
       #this needs to be done only once in purchase cycle
       if(hasMacdCrossed==FALSE){
         hasMacdCrossed=!is.na(isMacdGreater)&&isMacdGreater
@@ -49,8 +50,17 @@ getProfitPerc<-function(symbol,macdData){
       #buying row will be the last one.
       buyingRow=purchase.positions[nrow(purchase.positions),]
       buyDate=(as.Date(as.numeric(buyingRow$Date)))
+      #is fetched from global data, if macd is weekly data, this will be the price when then week ends
+      buyingPrice=getClosingPrice(symbol,buyDate)
+      #cat('sell...........',buyingPrice,'\n')
+      currPrice=getClosingPrice(symbol,date)
+      #checking whether price has increased.
+      difference=currPrice-buyingPrice
+      if(difference/buyingPrice>.05){
+        sellFlag=TRUE
+      }
       #for now iam only checking this condition to decide to sell. should be falling for consequtive 3 weeks incluing current week
-      sellFlag=isFalling(2,macdData,row,'histogram')
+      #sellFlag=sellFlag|| isFalling(3,macdData,row,'histogram')
       #cat('inside purchase',buyDate,sellFlag,hasMacdCrossed,"\n")
       if(hasMacdCrossed && !is.na(isMacdLess) && isMacdLess){
         #cat('inside double cross*********\n')
@@ -60,13 +70,11 @@ getProfitPerc<-function(symbol,macdData){
         isPurchaseOn=FALSE
         buyingRow=purchase.positions[nrow(purchase.positions),]
         buyDate=(as.Date(as.numeric(buyingRow$Date)))
-        #is fetched from global data, if macd is weekly data, this will be the price when then week ends
-        buyingPrice=getClosingPrice(symbol,buyDate)
-        #cat('sell...........',buyingPrice,'\n')
-        sellingPrice=getClosingPrice(symbol,date)
-        profit=(sellingPrice-buyingPrice)
+       
+        
+        profit=(currPrice-buyingPrice)
         profitPerc=profit/buyingPrice
-        purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'S',date,(sellingPrice-buyingPrice),profitPerc,buyDate,buyingPrice,sellingPrice)
+        purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'S',date,(currPrice-buyingPrice),profitPerc,buyDate,buyingPrice,currPrice)
       }
       
     }
@@ -119,6 +127,7 @@ backTest<-function(symbolList,startDate,endDate,type){
     #dailydata
     if(type=='W'){
       macdData=getMacdDataByTicker(tickerData,12,26,9)
+      # macdData=getMacdDataByTicker(tickerData,5,11,3)
     } else{
       #macdData=getMacdDailyDataByTicker(tickerData,30,63,22)
       macdData=getMacdDailyDataByTicker(tickerData,12,26,9)
@@ -145,7 +154,8 @@ backTest<-function(symbolList,startDate,endDate,type){
 }
 #symbolList=c('BAJFINANCE','HDFCBANK','HAVELLS','BAJAJFINSV','BIOCON','BRITANNIA','DABUR')
 weeklySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BERGEPAINT.NS','PIDILITIND.NS','ASIANPAINT.NS','MARICO.NS','SRF.NS','KOTAKBANK.NS','RELIANCE.NS')
-dailySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BERGEPAINT.NS','PIDILITIND.NS','ASIANPAINT.NS','SRF.NS','KOTAKBANK.NS','RELIANCE.NS')
+#dailySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BERGEPAINT.NS','PIDILITIND.NS','ASIANPAINT.NS','SRF.NS','KOTAKBANK.NS','RELIANCE.NS')
+dailySymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','RELIANCE.NS')
 
 #initializing dataframe
 backTestData <- data.frame(Symbol=numeric(), ProfitPerc=numeric(),successMacd=numeric(),successTradesPerc=numeric(),tradeCounts=numeric(),isBuyOn=numeric(),year=character(),stringsAsFactors = FALSE) 
@@ -155,8 +165,8 @@ purchaseDf<-data.frame()
 for(year in dates){
   startDate=as.Date(year)
   endDate=as.Date(startDate) + years(1);
-  # tempBackTestData<-backTest(dailySymbolList,startDate,endDate,'D')
-  tempBackTestData<-backTest(weeklySymbolList,startDate,endDate,'W')
+  tempBackTestData<-backTest(dailySymbolList,startDate,endDate,'D')
+  # tempBackTestData<-backTest(weeklySymbolList,startDate,endDate,'W')
   tempData<-tempBackTestData$back
   purchasePositions<-tempBackTestData$pur
   for(i in 1:nrow(tempData)){
@@ -165,7 +175,7 @@ for(year in dates){
     backTestData[rowIndex,'year']=year
     #swing.trading.data[nrow(swing.trading.data)+1, ] <- c(symbol, result$profitPerc,successMacd,result$successTradesPerc,result$tradeCounts,,result$isBuyOn)
   }
-  cat('length.......',nrow(purchaseDf),year,'\n')
+  #cat('length.......',nrow(purchaseDf),year,'\n')
   #for storing all the purchases that happened on above run
   for(dateData in purchasePositions){
     purchaseDf<-rbind(purchaseDf,dateData)
@@ -190,13 +200,16 @@ nrow(subset(purchaseDf,Type=='S'&ProfitPerc>0))
 sum(as.numeric(subset(purchaseDf,Type=='S'&ProfitPerc<0)$ProfitPerc))
 nrow(subset(purchaseDf,Type=='S'))
 
-analyzeDf<-subset(purchaseDf,Type=='S') %>%  mutate(month = format(DateString, "%m"), year = format(DateString, "%Y")) %>%
-group_by(year) %>% summarise(B = sum(as.numeric(ProfitPerc)),C =length(Symbol),D =length(Symbol[ProfitPerc>0]))%>% arrange(desc(B))
 
 #&Symbol=='BAJFINANCE.NS'
 analyzeDf<-subset(purchaseDf,Type=='S') %>%  mutate(month = format(SD, "%m"), year = format(SD, "%Y")) %>%
-  group_by(year) %>% summarise(Profit = sum(as.numeric(ProfitPerc)),Trades =length(Symbol),Hold =sum(as.numeric(date_diff)),SucTrades =length(Symbol[ProfitPerc>0]))%>% arrange(desc(Profit))
+  group_by(Symbol,year) %>% summarise(Profit = sum(as.numeric(ProfitPerc)),Trades =length(Symbol),Hold =sum(as.numeric(date_diff)),SucTrades =length(Symbol[ProfitPerc>0]))%>% arrange(desc(Profit))
 
+#to find culprits
+#SD>as.Date('2017-01-01')
+analyzeDf<-subset(purchaseDf,Type=='S') %>%  mutate(month = format(SD, "%m"), year = format(SD, "%Y")) %>%
+  group_by(Symbol,year) %>% summarise(Profit = sum(as.numeric(ProfitPerc)),Trades =length(Symbol),Hold =sum(as.numeric(date_diff)),MaxHold =max(as.numeric(date_diff)),SucTrades =length(Symbol[ProfitPerc>0]))%>% arrange(desc(Profit))
+analyzeProDf<-analyzeDf%>% group_by(year) %>% summarise(Profit = mean(as.numeric(Profit)),Trades =sum(Trades))
 
 sum(as.numeric((subset(purchaseDf,Symbol=='RELIANCE.NS'&Type=='S'))$ProfitPerc))
 sum(as.numeric((subset(purchaseDf,Type=='S'))$ProfitPerc))
