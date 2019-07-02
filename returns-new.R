@@ -19,7 +19,7 @@ populateReturnData<-function(tickers){
       orgTickerData<-getOrgTickerData(symbol)
       quarters<-profitQuarterly(orgTickerData[,4])
       cat(orgTickerData[1,],'\n')
-      macdData<-getMacdDataByTicker(orgTickerData)
+      macdData<-getMacdDataByTicker(orgTickerData,12,26,9)
     }, warning = function(w) {
       print(w)
     }, error = function(e) {
@@ -82,15 +82,15 @@ getOrgTickerData<-function(symbolName){
 }
 
 #get daily macd data
-getMacdDailyDataByTicker<-function(orgTickerData){
-  dailyMacd  <- MACD( orgTickerData[,4], 12, 26, 9, maType="EMA",percent = F )
+getMacdDailyDataByTicker<-function(orgTickerData,fast,slow,signal){
+  dailyMacd  <- MACD( orgTickerData[,4], fast, slow, signal, maType="EMA",percent = F )
   return(dailyMacd)
 }
 
-#get weekly macd data
-getMacdDataByTicker<-function(orgTickerData){
+#get weekly macd datas
+getMacdDataByTicker<-function(orgTickerData,fast,slow,signal){
   weekData <- to.weekly(orgTickerData)
-  weekMacd  <- MACD( weekData[,4], 12, 26, 9, maType="EMA",percent = F )
+  weekMacd  <- MACD( weekData[,4], fast, slow, signal, maType="EMA",percent = F )
   return(weekMacd)
 }
 

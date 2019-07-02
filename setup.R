@@ -14,9 +14,12 @@ colnames(return.stats) <- c("symbol", "success-quarters","success-macd-by-week")
 #reading all 200 from bse and nse
 #Step.3
 combinedTickers <- read.csv(file=file.path("both", "200nb"), header=T)
-for(symbol in combinedTickers$Symbol){
+#for(symbol in combinedTickers$Symbol){
+# getting only the desired ones
+stableSymbolList=c('BAJFINANCE.NS','BAJAJFINSV.NS','HDFCBANK.NS','HAVELLS.NS','BERGEPAINT.NS','PIDILITIND.NS','ASIANPAINT.NS','MARICO.NS','SRF.NS','KOTAKBANK.NS','RELIANCE.NS')
+for(symbol in stableSymbolList){
   print(symbol)
-  getSymbols(symbol,from="2014-01-01")
+  getSymbols(symbol,from="2014-01-01",to = (Sys.Date() + days(1)))
 }
 
 
@@ -61,6 +64,7 @@ for(index in 1:nrow(tickers.bs)){
   #combinedTickers[count,]<-c(ticker[,'Symbol'],ticker[,'Company Name'])
 }
 write.csv(combinedTickers,'C:\\Users\\anoop\\dream\\running\\r-stock-trading\\bse\\200nb', row.names = FALSE)
+write.csv(return.stats.ns,'C:\\Users\\anoop\\dream\\running\\r-stock-trading\\returns.csv', row.names = FALSE)
 
 
 paste("and some more", 'fun',sep="")
