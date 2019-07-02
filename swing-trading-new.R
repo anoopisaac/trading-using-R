@@ -30,7 +30,7 @@ getProfitPerc<-function(symbol,macdData){
   #manually find histogram by subtracting macd value from signal line
   macdData$histogram=as.numeric(macdData[,'macd'])-as.numeric(macdData[,'signal'])
   #creating dataframe to store buy sell positions
-  purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),ProfitPerc=numeric(),BuyDate=numeric(),stringsAsFactors = FALSE) 
+  purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),ProfitPerc=numeric(),BuyDate=numeric(),BP=numeric(),SP=numeric(), stringsAsFactors = FALSE) 
   isPurchaseOn=FALSE
   hasMacdCrossed=FALSE
   #for (row in startIndex:endIndex) {
@@ -66,7 +66,7 @@ getProfitPerc<-function(symbol,macdData){
         sellingPrice=getClosingPrice(symbol,date)
         profit=(sellingPrice-buyingPrice)
         profitPerc=profit/buyingPrice
-        purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'S',date,(sellingPrice-buyingPrice),profitPerc,buyDate)
+        purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'S',date,(sellingPrice-buyingPrice),profitPerc,buyDate,buyingPrice,sellingPrice)
       }
       
     }
@@ -75,14 +75,15 @@ getProfitPerc<-function(symbol,macdData){
       #print(isRising(2,dailyMacdData,row,'macd'))
       #cat("buy.................",macd,signal,as.character(date),"\n")
       isPurchaseOn=TRUE
-      purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0,0,date)
+      purchase.positions[nrow(purchase.positions)+1, ] <- c(symbol, 'B',date,0,0,date,-1,-1)
       hasMacdCrossed=FALSE
       
     }
     
   }
   
-  purchase.positions$DateString=as.Date(as.numeric(purchase.positions[,'Date']))
+  purchase.positions$SD=as.Date(as.numeric(purchase.positions[,'Date']))
+  purchase.positions$BD=as.Date(as.numeric(purchase.positions[,'BuyDate']))
   tradeCounts=nrow(subset(purchase.positions,Type=='S'))
   successTrades=nrow(subset(purchase.positions,Profit>0&Type=='S'))
   successTradesPerc=successTrades/tradeCounts
@@ -190,16 +191,18 @@ sum(as.numeric(subset(purchaseDf,Type=='S'&ProfitPerc<0)$ProfitPerc))
 nrow(subset(purchaseDf,Type=='S'))
 
 analyzeDf<-subset(purchaseDf,Type=='S') %>%  mutate(month = format(DateString, "%m"), year = format(DateString, "%Y")) %>%
-group_by(month,year) %>% summarise(B = sum(as.numeric(ProfitPerc)),C =length(Symbol),D =length(Symbol[ProfitPerc>0]))%>% arrange(desc(B))
+group_by(year) %>% summarise(B = sum(as.numeric(ProfitPerc)),C =length(Symbol),D =length(Symbol[ProfitPerc>0]))%>% arrange(desc(B))
 
-analyzeDf<-subset(purchaseDf,Type=='S'&Symbol=='BAJFINANCE.NS') %>%  mutate(month = format(DateString, "%m"), year = format(DateString, "%Y")) %>%
-  group_by(Symbol,year) %>% summarise(Profit = sum(as.numeric(ProfitPerc)),Trades =length(Symbol),Hold =sum(as.numeric(date_diff)),SucTrades =length(Symbol[ProfitPerc>0]))%>% arrange(desc(Profit))
+#&Symbol=='BAJFINANCE.NS'
+analyzeDf<-subset(purchaseDf,Type=='S') %>%  mutate(month = format(SD, "%m"), year = format(SD, "%Y")) %>%
+  group_by(year) %>% summarise(Profit = sum(as.numeric(ProfitPerc)),Trades =length(Symbol),Hold =sum(as.numeric(date_diff)),SucTrades =length(Symbol[ProfitPerc>0]))%>% arrange(desc(Profit))
 
 
 sum(as.numeric((subset(purchaseDf,Symbol=='RELIANCE.NS'&Type=='S'))$ProfitPerc))
 sum(as.numeric((subset(purchaseDf,Type=='S'))$ProfitPerc))
 
 write.csv(subset(purchaseDf,Symbol=='RELIANCE.NS'),'C:\\Users\\anoop\\dream\\running\\r-stock-trading\\analyze.csv', row.names = FALSE)
+write.csv(subset(purchaseDf),'C:\\Users\\anoop\\dream\\running\\r-stock-trading\\analyze.csv', row.names = FALSE)
 
 
 #checking for buy ready
