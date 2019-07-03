@@ -33,6 +33,7 @@ getProfitPerc<-function(symbol,macdData){
   purchase.positions <- data.frame(Symbol=numeric(), Type=character(), Date = numeric(),Profit=numeric(),ProfitPerc=numeric(),BuyDate=numeric(),BP=numeric(),SP=numeric(), stringsAsFactors = FALSE) 
   isPurchaseOn=FALSE
   hasMacdCrossed=FALSE
+  stopLoss;
   #for (row in startIndex:endIndex) {
   for (row in 1:nrow(macdData)) {
     macd <- as.numeric(macdData[row, "macd"])
@@ -57,6 +58,7 @@ getProfitPerc<-function(symbol,macdData){
       #checking whether price has increased.
       difference=currPrice-buyingPrice
       if(difference/buyingPrice>.05){
+        stopLoss=currPrice
         sellFlag=TRUE
       }
       #for now iam only checking this condition to decide to sell. should be falling for consequtive 3 weeks incluing current week
@@ -165,8 +167,8 @@ purchaseDf<-data.frame()
 for(year in dates){
   startDate=as.Date(year)
   endDate=as.Date(startDate) + years(1);
-  tempBackTestData<-backTest(tickers.ns$Symbol,startDate,endDate,'D')
-  # tempBackTestData<-backTest(weeklySymbolList,startDate,endDate,'W')
+  # tempBackTestData<-backTest(tickers.ns$Symbol,startDate,endDate,'D')
+  tempBackTestData<-backTest(weeklySymbolList,startDate,endDate,'W')
   tempData<-tempBackTestData$back
   purchasePositions<-tempBackTestData$pur
   for(i in 1:nrow(tempData)){
