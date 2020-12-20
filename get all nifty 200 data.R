@@ -66,3 +66,41 @@ macdValueFiltered<-macdDataDateFiltered[macdDataDateFiltered$macd>0]
 print(paste(symbol,nrow(macdValueFiltered),nrow(macdDataDateFiltered)))
 macdGoodCountsData[nrow(macdGoodCountsData)+1, ] <- c(symbol, nrow(macdValueFiltered),nrow(macdDataDateFiltered))
 
+isBelowEma('ASIANPAINT')
+
+lastCloseTicker<-asianData[nrow(asianData),"ASIANPAINT.NS.Close"]
+asianData[ 1:9, ]
+
+loopAndGetBelowEma()
+loopAndGetBelowEma<-function(){
+  sorted.macdGoodData <- macdGoodCountsData[order(-as.numeric(as.character(macdGoodCountsData$CountAboveZero))), ]
+  topStocks<-sorted.macdGoodData[ 1:20, ]
+  for(symbol in topStocks$Symbol){
+    isBelow<-isBelowEma(symbol,50)
+    if(isBelow){
+      print(paste("is below ema 50====>",symbol))
+    }
+    isBelow<-isBelowEma(symbol,100)
+    if(isBelow){
+      print(paste("is below ema 100====>",symbol))
+    }
+    isBelow<-isBelowEma(symbol,150)
+    if(isBelow){
+      print(paste("is below ema 150====>",symbol))
+    }
+    isBelow<-isBelowEma(symbol,200)
+    if(isBelow){
+      print(paste("is below ema 200====>",symbol))
+    }
+  }
+}
+
+isBelowEma<-function(symbol,emaValue){
+  symbolDataName<-sprintf('%s%s',symbol,'.NS')
+  symbolTickerData<-getOrgTickerData(symbolDataName)
+  closeColumnName<-sprintf('%s%s',symbolDataName,".Close")
+  symbolEmaData <-   EMA(symbolTickerData[,closeColumnName], emaValue);
+  lastCloseTicker<-symbolTickerData[nrow(symbolTickerData),closeColumnName]
+  lastEma<-symbolEmaData[nrow(symbolEmaData),"EMA"]
+  return(if(as.numeric(lastCloseTicker)<as.numeric(lastEma)) TRUE else FALSE)
+}
