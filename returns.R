@@ -179,7 +179,7 @@ profitQuarterly <- function(closeTickerData)
 
 
 #Step1.1
-setwd('C:/Users/anoop/dream/running/r-stock-trading')
+setwd('/Users/anoopisaac/projects/trading-using-R')
 getwd()
 
 
