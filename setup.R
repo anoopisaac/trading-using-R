@@ -49,7 +49,7 @@ write.csv(tickers.bs.200.code,'C:\\Users\\anoop\\dream\\running\\r-stock-trading
 tickers.ns <- read.csv(file=file.path("nifty", "200"), header=T)
 tickers.bs<- read.csv(file=file.path("bse", "200"), header=T)
 combinedTickers<- data.frame(Symbol=numeric(), CompanyName=numeric(),Type=numeric())
-for(index in 1:nrow(tickers.ns)){
+c
   symbol=tickers.ns[index,'Symbol']
   companyName=tickers.ns[index,1]
   symbolName=paste(symbol,'.NS',sep = '')
