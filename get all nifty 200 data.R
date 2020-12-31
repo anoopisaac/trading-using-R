@@ -33,18 +33,23 @@ getSymbols(sprintf('%s%s','GODREJPROP','.NS'),from="2013-01-01")
 
 
 startDate<-"2013-01-01"
-endDate<-"2020-12-10"
+# going only till feb of 2020 to remove covid market down effect
+endDate<-"2020-02-10"
 macdGoodCountsData <- data.frame(Symbol=character(), CountAboveZero=numeric(),TotalCount=numeric()) 
 #macdGoodCountsData<-macdGoodCountsData[0,]
 for(symbol in tickers$Symbol){
   tryCatch({
     symbolDataName<-sprintf('%s%s',symbol,'.NS')
+    # getting the ticker which is alreay downloaded
     orgTickerData<-getOrgTickerData(symbolDataName)
+    #get daily macd data
     macdData=getMacdDailyDataByTicker(orgTickerData,50,100,9)
+    #filtering macd data to avo
     macdDataDateFiltered<-macdData[index(macdData)>startDate & index(macdData)<=endDate,]
     macdValueFiltered<-macdDataDateFiltered[macdDataDateFiltered$macd>0]
     print(paste(symbol,nrow(macdValueFiltered),nrow(macdDataDateFiltered)))
     macdGoodCountsData[nrow(macdGoodCountsData)+1, ] <- c(symbol, nrow(macdValueFiltered),nrow(macdDataDateFiltered))
+    sorted.macdGoodData <- macdGoodCountsData[order(-as.numeric(as.character(macdGoodCountsData$CountAboveZero))), ]
   },
   error=function(cond){
     print(paste('error=======================>',symbol))
