@@ -65,31 +65,35 @@ print(ee)
 
 #nRecentDays : denotes the previous days considered to check the patterns
 #nRecentPositives : how many recent positives
-isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,nRecentDays){
+isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,configData){
+  #dataIndex,nRecentDays,countOfCandles
+  emaValue<-as.numeric(emaData[dataIndex,1])
+  if(is.na(emaValue)){
+    return(FALSE)
+  }
   closeColumnName<-sprintf('%s%s',fqnTickerName,".Close")
   openColumnName<-sprintf('%s%s',fqnTickerName,".Open")
   rowData=tickerData[dataIndex,]
   closingPrice=as.numeric(rowData[1,closeColumnName])
-  emaValue<-as.numeric(emaData[dataIndex,1])
+
   
   #this is needed as to account for the index returned by the below range
-  indexJustBeforeTheRange=(dataIndex-nRecentDays-1)
+  indexJustBeforeTheRange=(dataIndex-configData$nRecentDays-1)
   
-  lastNDaysData<-tickerData[(dataIndex-nRecentDays):dataIndex,]
-  lastNDaysMinIndex<-(indexJustBeforeTheRange+which.min(tickerData[(dataIndex-nRecentDays):dataIndex,closeColumnName]));
-  lastNDaysMaxIndex<-(indexJustBeforeTheRange+which.max(tickerData[(dataIndex-nRecentDays):dataIndex,closeColumnName]));
-  print(paste(lastNDaysMinIndex,lastNDaysMaxIndex,'min Date',index(lastNDaysMinIndex)))
+  lastNDaysData<-tickerData[(dataIndex-configData$nRecentDays):dataIndex,]
+  lastNDaysMinIndex<-(indexJustBeforeTheRange+which.min(tickerData[(dataIndex-configData$nRecentDays):dataIndex,closeColumnName]));
+  lastNDaysMaxIndex<-(indexJustBeforeTheRange+which.max(tickerData[(dataIndex-configData$nRecentDays):dataIndex,closeColumnName]));
+  #print(paste(lastNDaysMinIndex,lastNDaysMaxIndex,'min Date',index(lastNDaysMinIndex)))
 
   lastNDaysMin<-tickerData[lastNDaysMinIndex,];
   lastNDaysMax<-tickerData[lastNDaysMaxIndex,];
   
   lastNDaysMinClose<-as.numeric(tickerData[lastNDaysMinIndex,closeColumnName]);
   lastNDaysMaxClose<-as.numeric(tickerData[lastNDaysMaxIndex,closeColumnName]);
-  print(paste('ee:',(lastNDaysMaxClose-lastNDaysMinClose)))
   minMaxDiffPerc<-(((lastNDaysMaxClose-lastNDaysMinClose)/lastNDaysMinClose)*100);
-  isDiffAboveThreshold<-minMaxDiffPerc>1.5
+  isDiffAboveThreshold<-minMaxDiffPerc>configData$thresholdGain
   countOfBetweenCandles<-lastNDaysMaxIndex-lastNDaysMinIndex
-  isCountOfBetweenCandlesAboveThreshold<-countOfBetweenCandles>=2;
+  isCountOfBetweenCandlesAboveThreshold<-countOfBetweenCandles>=configData$thresholdCandleCounts;
   isLowestCloseLessThanEma<-lastNDaysMinClose<emaValue
   
   #i will consider it has improving based on below cases
@@ -98,16 +102,25 @@ isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,nR
   #1. 2% between max and min 2.atleast 3 green candles between the max and min
   
   #print (paste('count of bw candles',countOfBetweenCandles,'max close',lastNDaysMaxClose,'min close',lastNDaysMinClose,'diff%:',minMaxDiffPerc))
-  return (isDiffAboveThreshold&&(countOfBetweenCandles>0)&&isLowestCloseLessThanEma)
+  status<- (isDiffAboveThreshold&&(countOfBetweenCandles>0)&&isLowestCloseLessThanEma)
+  if(status==TRUE){
+    print(paste("index:",dataIndex,"min:",lastNDaysMinIndex,"max:",lastNDaysMaxIndex))
+  }
+  return (status);
 }
 
 fqnTickerName<-'ASIANPAINT.NS'
 tickerData<-getOrgTickerData(fqnTickerName)
 tickerEmaData <-EMA(tickerData[,"ASIANPAINT.NS.Close"], 50);
+emaValue<-tickerEmaData[1,]
+configData=list(nRecentDays=7,thresholdCandleCounts=3,thresholdGain=1.5)
+for(index in 1:nrow(tickerData)){
+  isStockImprovingAfterDip('ASIANPAINT.NS',tickerData,tickerEmaData,index,configData)
+}
 isStockImprovingAfterDip('ASIANPAINT.NS',tickerData,tickerEmaData,1947,7)
 
 
-tickerData[(1947-7):1947]
+tickerData[1954]
 minIndex=8
 indexJustBeforeTheRange=(1947-7-1)
 tickerData[indexJustBeforeTheRange+1,]
@@ -121,7 +134,8 @@ rowdata[[closeColumnName]]
 rowIndex=which(index(tickerData) == "2020-11-26")
 rowIndex=which(index(tickerData) == "2020-12-18")
 
-converTo
+a=list(b=2)
+a$b
 
 last7Days<-ASIANPAINT.NS[1960:1966,]
 last7Days[1,][[4]]
