@@ -86,13 +86,13 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
         if(isImproving==TRUE){
          
           purchase.positions.new[nrow(purchase.positions.new)+1, ] <<- c(fqnTickerName,as.character(rowDate),closingPrice,NA,NA,NA,NA)
-          print(purchase.positions.new[1,])
-          print("after adding purchase position")
+          #print(purchase.positions.new[1,])
+          #print("after adding purchase position")
           hasPurchased=TRUE;
         }
       } else if(hasPurchased==TRUE){
         recentPurchase<<-purchase.positions.new[nrow(purchase.positions.new), ];
-        print(recentPurchase)
+        #print(recentPurchase)
         purchasePrice<-as.numeric(recentPurchase$BuyPrice);
         profit<-closingPrice-purchasePrice
         profitPerc<-((profit/purchasePrice)*100)
@@ -109,7 +109,15 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
     }
   }
 }
-backtestBySymbolAndRange('ASIANPAINT',26,1947,1953)
+
+getSumOfProfitPerc<-function(purchase.positions.list){
+  Reduce(function (sofar, data) sofar*(1+(as.numeric(data[[7]])/100)), purchase.positions.list,1)
+}
+backtestBySymbolAndRange('BAJFINANCE',26,which(index(tickerData) == "2014-01-01"),which(index(tickerData) == "2020-12-18"))
+purchase.positions.list <- split(purchase.positions.new, seq(nrow(purchase.positions.new)))
+getSumOfProfitPerc(purchase.positions.list)
+
+
 
 
 rowIndex=which(index(tickerData) == "2020-11-26")
