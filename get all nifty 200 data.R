@@ -43,7 +43,9 @@ for(symbol in tickers$Symbol){
     # getting the ticker which is alreay downloaded
     orgTickerData<-getOrgTickerData(symbolDataName)
     #get daily macd data
-    macdData=getMacdDailyDataByTicker(orgTickerData,50,100,9)
+    #macdData=getMacdDailyDataByTicker(orgTickerData,50,100,9)
+    macdData=getMacdDailyDataByTicker(orgTickerData,100,150,9)
+    
     #filtering macd data to avo
     macdDataDateFiltered<-macdData[index(macdData)>startDate & index(macdData)<=endDate,]
     macdValueFiltered<-macdDataDateFiltered[macdDataDateFiltered$macd>0]
