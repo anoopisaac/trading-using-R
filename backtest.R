@@ -65,7 +65,7 @@ isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,co
   #             'min close',lastNDaysMinClose,'min index:',lastNDaysMinIndex,'diff%:',minMaxDiffPerc,'diff%',minMaxDiffPerc>configData$thresholdGain,
   #             'thre:',configData$thresholdGain,'diff:',isDiffAboveThreshold,'count candles:',countOfBetweenCandles>0,
   #             'is less than ema:',isLowestCloseLessThanEma,'ema value:',lastNDaysMinEmaValue,'date:',rowDate))
-  status<- (isDiffAboveThreshold&&(countOfBetweenCandles>0)&&isLowestCloseLessThanEma&&isCountOfBetweenCandlesAboveThreshold
+  status<- (isDiffAboveThreshold&&isLowestCloseLessThanEma&&isCountOfBetweenCandlesAboveThreshold
             &&(TRUE))
   #adjIncreasingCloseCount>=configData$thresholdIncreasingCloseCount
   if(status==TRUE){
@@ -75,6 +75,17 @@ isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,co
   return (returnObj);
 }
 
+#get cummulative sum of profit percentages
+getCummSumOfProfitPerc<-function(){
+  purchase.positions.list <- split(purchase.positions.new, seq(nrow(purchase.positions.new)))
+  #filter the entry which has only purchase
+  purchase.positions.list<-Filter(function (item) !is.na(item[["SellDate"]]), purchase.positions.list)
+  cummPercentage<-Reduce(function (sofar, data) {
+    currPerc<-as.numeric(data[["ProfitPerc"]])/100
+    return(sofar*(1+currPerc))
+  }, purchase.positions.list,1)
+  return (cummPercentage)
+}
 
 backtestBySymbolAndRange<-function(tickerName,emaValue,startRange=NA,endRange=NA){
   purchase.positions.new <<- data.frame(Symbol=numeric(),LastNDaysMinDate=character(),BuyDate=character(),BuyPrice=numeric(),SellDate=character(),SellPrice=numeric(),Profit=numeric(),ProfitPerc=numeric()) 
@@ -83,6 +94,7 @@ backtestBySymbolAndRange<-function(tickerName,emaValue,startRange=NA,endRange=NA
   startRange<-ifelse(is.na(startRange),1,startRange)
   endRange<-ifelse(is.na(endRange),nrow(tickerData),endRange)
   backtestByDataAndRange(fqnTickerName,tickerData,emaValue,startRange,endRange)
+  return (getCummSumOfProfitPerc())
   #print("after every")
 }
 backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,endRange){
@@ -90,7 +102,6 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
   closeColumnName<-sprintf('%s%s',fqnTickerName,".Close")
   tickerEmaData <-   EMA(tickerData[,closeColumnName], emaValue);
   hasPurchased<-FALSE;
-  configData=list(nRecentDays=7,thresholdCandleCounts=3,thresholdGain=1.5,thresholdIncreasingCloseCount=3,thresholdProfitPerc=7)
   for(index in startRange:endRange){
     rowData=tickerData[index,]
     closingPrice=as.numeric(rowData[1,closeColumnName])
@@ -106,7 +117,7 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
             #there needs to be diffferenc of 'nrecentDays' between previous and new purchase to make sure its not using the same rise
             prevSellDateIndex=which(index(tickerData) == prevPurchase$SellDate)
             if(index-prevSellDateIndex<configData$nRecentDays){
-              print(paste("reached here in skipping!!",prevSellDateIndex,prevPurchase$SellDate))
+              #print(paste("reached here in skipping!!",prevSellDateIndex,prevPurchase$SellDate))
               #next
             }
           }
@@ -145,34 +156,22 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
   }
 }
 
-#get cummulative sum of profit percentages
-getCummSumOfProfitPerc<-function(purchase.positions.list){
-  purchase.positions.list <- split(purchase.positions.new, seq(nrow(purchase.positions.new)))
-  #filter the entry which has only purchase
-  purchase.positions.list<-Filter(function (item) !is.na(item[["SellDate"]]), purchase.positions.list)
-  Reduce(function (sofar, data) {
-      currPerc<-as.numeric(data[["ProfitPerc"]])/100
-      return(sofar*(1+currPerc))
-    }, purchase.positions.list,1)
+hightTickers<-list("BAJFINANCE","HDFC","AARTIIND","PIDILITIND","HDFCBANK","BERGEPAINT","BAJAJFINSV","KOTAKBANK","PGHH","ASIANPAINT","SRF","BRITANNIA","HAVELLS","TCS","NAVINFLUOR","IGL","HCLTECH","CUB","HINDUNILVR","DABUR","DIVISLAB","BATAINDIA","RELIANCE","PIIND","TRENT")
+configData=list(nRecentDays=7,thresholdCandleCounts=3,thresholdGain=1.5,thresholdIncreasingCloseCount=3,thresholdProfitPerc=6)
+for(ticker in hightTickers){
+  #print(ticker)
+  cumm<-backtestBySymbolAndRange(ticker,26,which(index(tickerData) == "2015-01-01"),which(index(tickerData) == "2015-12-31"))
+  print(cumm)
 }
+validDates=list(list(start="2"))
 
-getSumOfProfitPerc<-function(purchase.positions.list){
-  purchase.positions.list <- split(purchase.positions.new, seq(nrow(purchase.positions.new)))
-  #filter the entry which has only purchase
-  purchase.positions.list<-Filter(function (item) !is.na(item[["SellDate"]]), purchase.positions.list)
-  Reduce(function (sofar, data) {
-    currPerc<-as.numeric(data[["ProfitPerc"]])/100
-    return(sofar+currPerc)
-  }, purchase.positions.list,0)
-}
+backtestBySymbolAndRange('ASIANPAINT',26,which(index(tickerData) == "2014-01-01"),which(index(tickerData) == "2020-12-18"))
+
+backtestBySymbolAndRange('ASIANPAINT',26,which(index(tickerData) == "2019-01-01"),which(index(tickerData) == "2019-12-31"))
+backtestBySymbolAndRange('BAJFINANCE',26,which(index(tickerData) == "2020-01-01"),which(index(tickerData) == "2020-12-18"))
 
 
-backtestBySymbolAndRange('BAJFINANCE',26,which(index(tickerData) == "2014-01-01"),which(index(tickerData) == "2020-12-18"))
-backtestBySymbolAndRange('BAJFINANCE',26,which(index(tickerData) == "2019-01-01"),which(index(tickerData) == "2019-12-31"))
-backtestBySymbolAndRange('KOTAKBANK',26,which(index(tickerData) == "2020-01-01"),which(index(tickerData) == "2020-12-18"))
-
-getCummSumOfProfitPerc(purchase.positions.list)
-getSumOfProfitPerc(purchase.positions.list)
+getSumOfProfitPerc()
 
 
 Reduce(function (sofar, data) sofar*(1+data/100), list(5,14,7,9,6,5,7),1)
@@ -290,8 +289,10 @@ y=Map({function (a) a[[4]]-a[[4]]}, last7Days.list)
 y=unlist(y)
 
 
-x=seq(1,10,0.5)
-Reduce(function (x, y) x+y, x)
+x=seq(1,3)
+hai<-Reduce(function (sofar,data) {
+  return(sofar+data)
+  }, x)
 
 x=1:10
 Filter(function (x) x%%2==0, x)
