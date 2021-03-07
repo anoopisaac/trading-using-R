@@ -32,31 +32,39 @@ get(sprintf('%s%s','COFORGE','.NS'))
 getSymbols(sprintf('%s%s','GODREJPROP','.NS'),from="2013-01-01")
 
 
+# stocks with macd above zero most no. of times is shown high in the order. for ex: above zero shows that their fast ema is greater than slow ema.
+getStocksBasedOnMacd<-function(startDate,endDate,macdType,fastValue,slowValue){
+  macdGoodCountsData <<- data.frame(Symbol=character(), CountAboveZero=numeric(),TotalCount=numeric()) 
+  for(symbol in tickers$Symbol){
+    tryCatch({
+      symbolDataName<-sprintf('%s%s',symbol,'.NS')
+      # getting the ticker which is alreay downloaded
+      orgTickerData<-getOrgTickerData(symbolDataName)
+      #get daily macd data
+      #macdData=getMacdDailyDataByTicker(orgTickerData,50,100,9)
+      macdData=getMacdDailyDataByTicker(orgTickerData,fastValue,slowValue,9)
+      
+      #filtering macd data to avo
+      macdDataDateFiltered<-macdData[index(macdData)>startDate & index(macdData)<=endDate,]
+      macdValueFiltered<-macdDataDateFiltered[macdDataDateFiltered$macd>0]
+      print(paste(symbol,nrow(macdValueFiltered),nrow(macdDataDateFiltered)))
+      macdGoodCountsData[nrow(macdGoodCountsData)+1, ] <<- c(symbol, nrow(macdValueFiltered),nrow(macdDataDateFiltered))
+    },
+    error=function(cond){
+      print(paste('error=======================>',symbol))
+    })
+  }
+  sorted.macdGoodData <<- macdGoodCountsData[order(-as.numeric(as.character(macdGoodCountsData$CountAboveZero))), ]
+}
+
 startDate<-"2013-01-01"
 # going only till feb of 2020 to remove covid market down effect
 endDate<-"2020-02-10"
-macdGoodCountsData <- data.frame(Symbol=character(), CountAboveZero=numeric(),TotalCount=numeric()) 
+getStocksBasedOnMacd(startDate,endDate,"day",100,150)
+
 #macdGoodCountsData<-macdGoodCountsData[0,]
-for(symbol in tickers$Symbol){
-  tryCatch({
-    symbolDataName<-sprintf('%s%s',symbol,'.NS')
-    # getting the ticker which is alreay downloaded
-    orgTickerData<-getOrgTickerData(symbolDataName)
-    #get daily macd data
-    #macdData=getMacdDailyDataByTicker(orgTickerData,50,100,9)
-    macdData=getMacdDailyDataByTicker(orgTickerData,100,150,9)
-    
-    #filtering macd data to avo
-    macdDataDateFiltered<-macdData[index(macdData)>startDate & index(macdData)<=endDate,]
-    macdValueFiltered<-macdDataDateFiltered[macdDataDateFiltered$macd>0]
-    print(paste(symbol,nrow(macdValueFiltered),nrow(macdDataDateFiltered)))
-    macdGoodCountsData[nrow(macdGoodCountsData)+1, ] <- c(symbol, nrow(macdValueFiltered),nrow(macdDataDateFiltered))
-    sorted.macdGoodData <- macdGoodCountsData[order(-as.numeric(as.character(macdGoodCountsData$CountAboveZero))), ]
-  },
-  error=function(cond){
-    print(paste('error=======================>',symbol))
-  })
-}
+
+
 macdData[macdData$macd>0]
 paste("Today is", date())
 hai="hello"

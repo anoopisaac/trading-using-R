@@ -17,7 +17,9 @@ countOfAjdacentIncreasingCloses<-function(closeData){
   return(countOfIncreases)
 }
 
-countOfAjdacentIncreasingCloses(tickerData[20:25,"ASIANPAINT.NS.Close"]);
+countOfAjdacentIncreasingCloses(tickerData[20:25,"TRENT.NS.Close"]);
+countOfAjdacentIncreasingCloses(list(20,21,22,23,20,16,17));
+
 #nRecentDays : denotes the previous days considered to check the patterns
 #nRecentPositives : how many recent positives
 isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,configData){
@@ -26,6 +28,7 @@ isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,co
   if(is.na(emaValue)){
     return(FALSE)
   }
+  #print(paste("ema:",emaValue,"dataIndex:",dataIndex))
   closeColumnName<-sprintf('%s%s',fqnTickerName,".Close")
   openColumnName<-sprintf('%s%s',fqnTickerName,".Open")
   rowData=tickerData[dataIndex,]
@@ -50,29 +53,46 @@ isStockImprovingAfterDip<-function(fqnTickerName,tickerData,emaData,dataIndex,co
   
   minMaxDiffPerc<-(((closingPrice-lastNDaysMinClose)/lastNDaysMinClose)*100);
   isDiffAboveThreshold<-minMaxDiffPerc>configData$thresholdGain
+  
   countOfBetweenCandles<-dataIndex-lastNDaysMinIndex
   isCountOfBetweenCandlesAboveThreshold<-countOfBetweenCandles>=configData$thresholdCandleCounts;
+  
   isLowestCloseLessThanEma<-lastNDaysMinClose<lastNDaysMinEmaValue
+  
   adjIncreasingCloseCount<-countOfAjdacentIncreasingCloses(tickerData[lastNDaysMinIndex:dataIndex,closeColumnName]);
-  #print(increasingCloseCount)
+  adjIncrCandleStatus<-adjIncreasingCloseCount>=configData$thresholdIncreasingCloseCount
   
-  #i will consider it has improving based on below cases
-  #1. 1.5% between max and min 2.atleast 2 candles between the max and min 3.max candle above ema
-  #or if the max is still below ema
-  #1. 2% between max and min 2.atleast 3 green candles between the max and min
+  statusList=list(
+    isDiffAboveThreshold,
+    isCountOfBetweenCandlesAboveThreshold,
+    isLowestCloseLessThanEma
+  )
+  if(FALSE){
+    print (paste('count of bw candles:',countOfBetweenCandles,'max close:',closingPrice,'max index:',dataIndex,
+                 'min close',lastNDaysMinClose,'min index:',lastNDaysMinIndex,'diff%:',minMaxDiffPerc,'diff%',minMaxDiffPerc>configData$thresholdGain,
+                 'thre:',configData$thresholdGain,'diff:',isDiffAboveThreshold,'count candles:',countOfBetweenCandles>0,
+                 'is less than ema:',isLowestCloseLessThanEma,'ema value:',lastNDaysMinEmaValue,'date:',rowDate))
+  }
   
-  #print (paste('count of bw candles:',countOfBetweenCandles,'max close:',lastNDaysMaxClose,'max index:',lastNDaysMaxIndex,
-  #             'min close',lastNDaysMinClose,'min index:',lastNDaysMinIndex,'diff%:',minMaxDiffPerc,'diff%',minMaxDiffPerc>configData$thresholdGain,
-  #             'thre:',configData$thresholdGain,'diff:',isDiffAboveThreshold,'count candles:',countOfBetweenCandles>0,
-  #             'is less than ema:',isLowestCloseLessThanEma,'ema value:',lastNDaysMinEmaValue,'date:',rowDate))
-  status<- (isDiffAboveThreshold&&isLowestCloseLessThanEma&&isCountOfBetweenCandlesAboveThreshold
-            &&(TRUE))
+  status<- Reduce(function (sofar, currStatus) sofar&currStatus,statusList,TRUE)
+
+  #print(paste("st-->",status,"lastNDaysMinEmaValue:",lastNDaysMinEmaValue," last nday min",lastNDaysMinIndex))
   #adjIncreasingCloseCount>=configData$thresholdIncreasingCloseCount
   if(status==TRUE){
     #print(paste("index:",dataIndex,"min:",lastNDaysMinIndex,"curr Index:",dataIndex,'date:',rowDate))
   }
   returnObj=list(status=status,lastNDaysMinIndex=lastNDaysMinIndex)
   return (returnObj);
+}
+
+configData=list(nRecentDays=7,thresholdCandleCounts=3,thresholdGain=1.5,thresholdIncreasingCloseCount=3,thresholdProfitPerc=7,blockConsqPurchases=FALSE)
+backtestBySymbolAndRange("BAJFINANCE",26,"2014-01-01","2014-12-31",configData)
+
+myWhich<-function(tickerName,date){
+  fqnTickerName<-sprintf('%s%s',tickerName,'.NS')
+  tickerData<-getOrgTickerData(fqnTickerName);
+  return (tickerData[which(index(tickerData) == date),])
+  
 }
 
 #get cummulative sum of profit percentages
@@ -87,24 +107,28 @@ getCummSumOfProfitPerc<-function(){
   return (cummPercentage)
 }
 
-backtestBySymbolAndRange<-function(tickerName,emaValue,startRange=NA,endRange=NA){
+backtestBySymbolAndRange<-function(tickerName,emaValue,startDate=NA,endDate=NA,configData){
   purchase.positions.new <<- data.frame(Symbol=numeric(),LastNDaysMinDate=character(),BuyDate=character(),BuyPrice=numeric(),SellDate=character(),SellPrice=numeric(),Profit=numeric(),ProfitPerc=numeric()) 
   fqnTickerName<-sprintf('%s%s',tickerName,'.NS')
   tickerData<-getOrgTickerData(fqnTickerName)
-  startRange<-ifelse(is.na(startRange),1,startRange)
-  endRange<-ifelse(is.na(endRange),nrow(tickerData),endRange)
-  backtestByDataAndRange(fqnTickerName,tickerData,emaValue,startRange,endRange)
+  startRange<-ifelse(is.na(startDate),1,which(index(tickerData) == startDate))
+  endRange<-ifelse(is.na(endDate),nrow(tickerData),which(index(tickerData) == endDate))
+  backtestByDataAndRange(fqnTickerName,tickerData,emaValue,startRange,endRange,configData)
   return (getCummSumOfProfitPerc())
   #print("after every")
 }
-backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,endRange){
+backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,endRange,configData){
   
   closeColumnName<-sprintf('%s%s',fqnTickerName,".Close")
+  highPriceColName<-sprintf('%s%s',fqnTickerName,".High")
+  openPriceColName<-sprintf('%s%s',fqnTickerName,".Open")
+  
   tickerEmaData <-   EMA(tickerData[,closeColumnName], emaValue);
   hasPurchased<-FALSE;
   for(index in startRange:endRange){
     rowData=tickerData[index,]
     closingPrice=as.numeric(rowData[1,closeColumnName])
+    highPrice=as.numeric(rowData[1,highPriceColName])
     emaByIndex=as.numeric(tickerEmaData[index,1])
     rowDate=index(rowData)
     #print(paste(index,emaByIndex))
@@ -116,9 +140,9 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
           if(!is.na(prevPurchase$SellDate)){
             #there needs to be diffferenc of 'nrecentDays' between previous and new purchase to make sure its not using the same rise
             prevSellDateIndex=which(index(tickerData) == prevPurchase$SellDate)
-            if(index-prevSellDateIndex<configData$nRecentDays){
+            if(index-prevSellDateIndex<configData$nRecentDays&&configData$blockConsqPurchases==TRUE){
               #print(paste("reached here in skipping!!",prevSellDateIndex,prevPurchase$SellDate))
-              #next
+              next
             }
           }
         }
@@ -135,14 +159,19 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
         recentPurchase<<-purchase.positions.new[nrow(purchase.positions.new), ];
         #print(recentPurchase)
         purchasePrice<-as.numeric(recentPurchase$BuyPrice);
-        profit<-closingPrice-purchasePrice
+        #profit<-closingPrice-purchasePrice
+        #will sell if at any point candle has crossed profit margin
+        profit<-highPrice-purchasePrice
         profitPerc<-((profit/purchasePrice)*100)
+        
         #print(paste('profit:',profit))
         if(profitPerc>=configData$thresholdProfitPerc){
           hasPurchased<-FALSE;
+          sellingPrice<-purchasePrice+(purchasePrice*(configData$thresholdProfitPerc/100))
+          newProfit<-sellingPrice-purchasePrice;
           #purchase.positions.new[nrow(purchase.positions.new)+1, ] <<- c(fqnTickerName,rowDate,4,rowDate,5,4,4)
           purchase.positions.new[nrow(purchase.positions.new), ] <<- c(fqnTickerName,recentPurchase$LastNDaysMinDate, recentPurchase$BuyDate,purchasePrice,
-                                                                       as.character(rowDate),closingPrice,profit,profitPerc)
+                                                                       as.character(rowDate),sellingPrice,newProfit,configData$thresholdProfitPerc)
         } 
         # else if(profitPerc<=-3){
         #   hasPurchased<-FALSE;
@@ -157,18 +186,33 @@ backtestByDataAndRange<-function(fqnTickerName,tickerData,emaValue,startRange,en
 }
 
 hightTickers<-list("BAJFINANCE","HDFC","AARTIIND","PIDILITIND","HDFCBANK","BERGEPAINT","BAJAJFINSV","KOTAKBANK","PGHH","ASIANPAINT","SRF","BRITANNIA","HAVELLS","TCS","NAVINFLUOR","IGL","HCLTECH","CUB","HINDUNILVR","DABUR","DIVISLAB","BATAINDIA","RELIANCE","PIIND","TRENT")
-configData=list(nRecentDays=7,thresholdCandleCounts=3,thresholdGain=1.5,thresholdIncreasingCloseCount=3,thresholdProfitPerc=6)
+#hightTickers<-list("BAJFINANCE")
+configData=list(nRecentDays=7,thresholdCandleCounts=3,thresholdGain=1.5,thresholdIncreasingCloseCount=3,thresholdProfitPerc=13)
+#hightTickers<-list("AARTIIND")
 for(ticker in hightTickers){
-  #print(ticker)
-  cumm<-backtestBySymbolAndRange(ticker,26,which(index(tickerData) == "2015-01-01"),which(index(tickerData) == "2015-12-31"))
-  print(cumm)
+  validDates=list( 
+                    list(start="2014-01-01",end="2014-12-31")
+                   ,list(start="2015-01-01",end="2015-12-31")
+                   ,list(start="2016-01-01",end="2016-12-30")
+                   ,list(start="2017-01-02",end="2017-12-29")
+                   ,list(start="2018-01-01",end="2018-12-31")
+                   ,list(start="2019-01-01",end="2019-12-31")
+                   ,list(start="2020-01-01",end="2020-12-18")
+  )
+  profitPerYear=list();
+  for (year in validDates){
+    cumm<-backtestBySymbolAndRange(ticker,26,year$start,year$end,configData)
+    profitPerYear[[year$start]]=cumm
+  }
+  print(paste(profitPerYear[["2014-01-01"]],profitPerYear[["2015-01-01"]],
+              profitPerYear[["2016-01-01"]],profitPerYear[["2017-01-02"]],profitPerYear[["2018-01-01"]]
+              ,profitPerYear[["2019-01-01"]],profitPerYear[["2020-01-01"]]))
 }
-validDates=list(list(start="2"))
 
 backtestBySymbolAndRange('ASIANPAINT',26,which(index(tickerData) == "2014-01-01"),which(index(tickerData) == "2020-12-18"))
 
 backtestBySymbolAndRange('ASIANPAINT',26,which(index(tickerData) == "2019-01-01"),which(index(tickerData) == "2019-12-31"))
-backtestBySymbolAndRange('BAJFINANCE',26,which(index(tickerData) == "2020-01-01"),which(index(tickerData) == "2020-12-18"))
+backtestBySymbolAndRange('BAJFINANCE',26,which(index(tickerData) == "2019-01-01"),which(index(tickerData) == "2019-12-31"))
 
 
 getSumOfProfitPerc()
@@ -287,6 +331,10 @@ hello="ASIANPAINT.NS.Open"
 last7Days.list[[1]](hello)
 y=Map({function (a) a[[4]]-a[[4]]}, last7Days.list)
 y=unlist(y)
+
+z=Map({function (a) {
+    return (5)
+  }},x)
 
 
 x=seq(1,3)
